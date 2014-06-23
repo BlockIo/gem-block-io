@@ -37,6 +37,20 @@ module BlockIo
     self.api_call(endpoint)
   end
 
+  def self.get_address_balance(args)
+    # returns the specified address or address_label's balance
+    
+    address = args[:address]
+    address_label = args[:address_label]
+
+    raise Exception.new("Must provide ONE of address or address_label") if (!address.nil? and !address_label.nil?) or (address.nil? and address_label.nil?)
+
+    endpoint = ['get_address_balance',"&address=#{address}"] unless address.nil?
+    endpoint = ['get_address_balance',"&address_label=#{address_label}"] unless address_label.nil?
+
+    self.api_call(endpoint)
+  end
+
   def self.get_current_price(args = {})
     # returns prices from different exchanges as an array of hashes
     price_base = args[:price_base]
@@ -58,7 +72,7 @@ module BlockIo
     payment_address = args[:payment_address]
     from_user_ids = args[:from_user_ids] || args[:from_user_id]
 
-    raise Exception.new("Must provide ONE of payment_address, or to_user_id") if !to_user_id.nil? and !payment_address.nil?
+    raise Exception.new("Must provide ONE of payment_address, or to_user_id") if (!to_user_id.nil? and !payment_address.nil?) or (to_user_id.nil? and payment_address.nil?)
     raise Exception.new("Must provide amount to withdraw") if amount.nil?
 
     endpoint = ['withdraw',"&amount=#{amount}&payment_address=#{payment_address}&pin=#{@pin}"] unless payment_address.nil?
@@ -109,7 +123,7 @@ module BlockIo
     user_id = args[:user_id]
     address = args[:address]
 
-    raise Exception.new("Must provide ONE of address_label, user_id, or address") unless args.keys.length == 1
+    raise Exception.new("Must provide ONE of address_label, user_id, or address") unless args.keys.length == 1 and (!address_label.nil? or !user_id.nil? or !address.nil?)
 
     endpoint = ['get_address_received','']
     endpoint = ["get_address_received","&user_id=#{user_id}"] unless user_id.nil?
