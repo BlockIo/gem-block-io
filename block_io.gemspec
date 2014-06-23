@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Atif Nazir"]
   spec.email         = ["a@block.io"]
   spec.summary       = %q{An easy to use Dogecoin, Bitcoin, Litecoin wallet API by Block.io. Sign up required at Block.io.}
-  spec.description   = %q{}
+  spec.description   = %q{This Ruby Gem is the official reference client for the Block.io payments API. To use this, you will need the Dogecoin, Bitcoin, or Litecoin API key(s) from Block.io. Go ahead, sign up :)}
   spec.homepage      = ""
   spec.license       = "MIT"
 
