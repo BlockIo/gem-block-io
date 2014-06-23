@@ -21,5 +21,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "bundler", "~> 1.6"
   spec.add_development_dependency "httpclient", "~> 2.4.0"
   spec.add_development_dependency "json", "~> 1.8.1"
+  spec.add_development_dependency "connection_pool", "~> 2.0.0"
   spec.add_development_dependency "rake"
 end

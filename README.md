@@ -18,7 +18,17 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+It's super easy to get started. In your Ruby shell ($ irb), for example, do this:
+
+    require 'block_io'
+    BlockIo.set_options :api_key => 'API KEY', :pin => 'SECRET PIN'
+     
+And you're good to go:
+
+    BlockIo.get_new_address
+    BlockIo.get_my_addresses
+
+For more information, see https://block.io/api
 
 ## Contributing
 
