@@ -19,6 +19,17 @@ module BlockIo
     self.api_call(['get_balance',""])
   end
 
+  def self.get_offline_vault_balance
+    # returns the offline vault's balance
+    endpoint = ["get_offline_vault_balance",""]
+    self.api_call(endpoint)
+  end
+
+  def self.get_offline_vault_address
+    # returns the offline vault's address and balance info
+    self.get_offline_vault_balance
+  end
+
   def self.get_balance
     # returns the balances for your account tied to the API key
     endpoint = ["get_balance", ""] 
@@ -59,6 +70,11 @@ module BlockIo
     endpoint = ['get_current_price',"&price_base=#{price_base}"] unless price_base.nil? or price_base.to_s.length == 0
 
     self.api_call(endpoint)
+  end
+
+  def self.withdraw_from_user(args = {})
+    # withdraws coins from the given user(s)
+    self.withdraw(args)
   end
 
   def self.withdraw(args = {})
@@ -176,7 +192,7 @@ module BlockIo
 
       response = hc.get("#{@base_url.gsub('API_CALL',endpoint[0]) + @api_key + endpoint[1]}")
       body = JSON.parse(response.body)
-      body['data']
+      puts JSON.pretty_generate(body)
     end
 
   end
