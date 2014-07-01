@@ -6,7 +6,7 @@ require 'connection_pool'
 module BlockIo
 
   @api_key = nil
-  @base_url = "https://block.io:99/api/v1/API_CALL/?api_key="
+  @base_url = "https://block.io/api/v1/API_CALL/?api_key="
   @pin = nil
   @conn_pool = nil
 
@@ -187,14 +187,18 @@ module BlockIo
 
   def self.api_call(endpoint)
 
+    body = nil
+
     @conn_pool.with do |hc|
       # prevent initiation of HTTPClients every time we make this call, use a connection_pool
 
+      hc.ssl_config.ssl_version = :TLSv1
       response = hc.get("#{@base_url.gsub('API_CALL',endpoint[0]) + @api_key + endpoint[1]}")
       body = JSON.parse(response.body)
-      puts JSON.pretty_generate(body)
+      
     end
-
+    
+    body
   end
 
 end

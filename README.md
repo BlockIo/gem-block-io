@@ -16,6 +16,12 @@ Or install it yourself as:
 
     $ gem install block_io
 
+## Changelog
+   
+*07/01/14*: Forcing TLSv1 usage since Block.io does not support SSLv3 due to its vulnerable nature. Fixed:
+	    HTTPClient.new.ssl_config.ssl_version = :TLSv1
+
+
 ## Usage
 
 It's super easy to get started. In your Ruby shell ($ irb), for example, do this:

@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["a@block.io"]
   spec.summary       = %q{An easy to use Dogecoin, Bitcoin, Litecoin wallet API by Block.io. Sign up required at Block.io.}
   spec.description   = %q{This Ruby Gem is the official reference client for the Block.io payments API. To use this, you will need the Dogecoin, Bitcoin, or Litecoin API key(s) from Block.io. Go ahead, sign up :)}
-  spec.homepage      = ""
+  spec.homepage      = "https://block.io/api/ruby"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")
@@ -19,8 +19,8 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_development_dependency "bundler", "~> 1.6"
-  spec.add_development_dependency "httpclient", "~> 2.4.0"
-  spec.add_development_dependency "json", "~> 1.8.1"
-  spec.add_development_dependency "connection_pool", "~> 2.0.0"
-  spec.add_development_dependency "rake"
+  spec.add_development_dependency "httpclient", "~> 2.4"
+  spec.add_development_dependency "json", "~> 1.8"
+  spec.add_development_dependency "connection_pool", "~> 2.0"
+  spec.add_development_dependency "rake", "~> 0"
 end
