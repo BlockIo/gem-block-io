@@ -159,7 +159,7 @@ module BlockHelper
     data_bin = [data].pack("H*") # convert hex to binary
 
     key = Key.new(private_key)
-    return key.sign(data).unpack("H*")[0]
+    return key.sign(data_bin).unpack("H*")[0]
   end
 
   def self.pinToAesKey(passphrase, iterations = 1)
