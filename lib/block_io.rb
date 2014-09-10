@@ -211,10 +211,6 @@ end
 
 module BlockIo
 
-  autoload :OpenSSL_EC, 'block_io/helpers'
-  autoload :Key, 'block_io/helpers'
-  autoload :BlockHelper, 'block_io/helpers'
-
   @api_key = nil
   @base_url = "https://block.io/api/v1/API_CALL/?api_key="
   @pin = nil
