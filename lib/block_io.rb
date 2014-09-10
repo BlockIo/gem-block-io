@@ -95,7 +95,7 @@ class Key
     @curve = ::OpenSSL::PKey::EC.new("secp256k1")
     @curve.generate_key if privkey.nil?
     @curve.private_key = OpenSSL::BN.from_hex(privkey) if @curve.private_key.nil?
-    @curve.public_key = ::OpenSSL::PKey::EC::Point.from_hex(@curve.group,OpenSSL_EC.regenerate_key(privkey)[1]) if @curve.public_key.nil?
+    @curve.public_key = ::OpenSSL::PKey::EC::Point.from_hex(@curve.group,OpenSSL_EC.regenerate_key(@curve.private_key)[1]) if @curve.public_key.nil?
   end 
 
   def private_key
