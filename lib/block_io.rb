@@ -122,7 +122,14 @@ class Key
     # if you don't want a passphrase, just use Key.new and it will generate a random key for you
 
     raise Exception.new('Must provide passphrase at least 8 characters long.') if passphrase.nil? or passphrase.length < 8
-    return Key.new(BlockHelper.sha256(passphrase))
+
+    # get the PBKDF2 key
+    salt = ""
+    iterations = 1000
+
+    hashed_key = OpenSSL::PKCS5.pbkdf2_hmac(passphrase, salt, iterations, 32, OpenSSL::Digest::SHA256.new).unpack("H*")[0] # in hex
+
+    return Key.new(hashed_key)
   end
 
 end
