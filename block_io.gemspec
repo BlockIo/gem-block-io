@@ -23,4 +23,5 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency "httpclient", "~> 2.4", '>= 2.4.0'
   spec.add_runtime_dependency "json", "~> 1.8", '>= 1.8.1'
   spec.add_runtime_dependency "connection_pool", "~> 2.0", '>= 2.0.0'
+  spec.add_runtime_dependency "ffi", '~> 1.9', '>= 1.9.3'
 end
