@@ -95,7 +95,8 @@ class Key
     @curve = ::OpenSSL::PKey::EC.new("secp256k1")
     @curve.generate_key if privkey.nil?
     @curve.private_key = OpenSSL::BN.from_hex(privkey) if @curve.private_key.nil?
-    @curve.public_key = ::OpenSSL::PKey::EC::Point.from_hex(@curve.group,OpenSSL_EC.regenerate_key(@curve.private_key)[1]) if @curve.public_key.nil?
+
+    @curve.public_key = ::OpenSSL::PKey::EC::Point.from_hex(@curve.group,OpenSSL_EC.regenerate_key(@curve.private_key_hex)[1]) if @curve.public_key.nil?
   end 
 
   def private_key
@@ -123,11 +124,12 @@ class Key
 
     raise Exception.new('Must provide passphrase at least 8 characters long.') if passphrase.nil? or passphrase.length < 8
 
-    # get the PBKDF2 key
-    salt = ""
-    iterations = 1000
+#    # get the PBKDF2 key
+#    salt = ""
+#    iterations = 1000
 
-    hashed_key = OpenSSL::PKCS5.pbkdf2_hmac(passphrase, salt, iterations, 32, OpenSSL::Digest::SHA256.new).unpack("H*")[0] # in hex
+    hashed_key = BlockHelper.sha256([passphrase].pack("H*")) # must pass bytes to sha256
+#    hashed_key = OpenSSL::PKCS5.pbkdf2_hmac(passphrase, salt, iterations, 32, OpenSSL::Digest::SHA256.new).unpack("H*")[0] # in hex
 
     return Key.new(hashed_key)
   end
@@ -142,7 +144,7 @@ module BlockHelper
     # returns the private key extracted from the given encrypted data
     
     decrypted = BlockHelper.decrypt(encrypted_data, passphrase)
-    private_key = BlockHelper.sha256(decrypted)
+    private_key = Key.from_passphrase(decrypted).private_key
     return private_key
   end
 
