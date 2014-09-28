@@ -11,7 +11,7 @@ require 'ffi'
 module BlockIo
 
   @api_key = nil
-  @base_url = "https://dev.block.io/api/VERSION/API_CALL/?api_key="
+  @base_url = "https://dev.block.io:99/api/VERSION/API_CALL/?api_key="
   @pin = nil
   @encryptionKey = nil
   @conn_pool = nil

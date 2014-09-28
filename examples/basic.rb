@@ -3,7 +3,7 @@
 require 'block_io'
 
 # please use the Dogecoin Testnet API key here
-puts BlockIo.set_options :api_key => 'YOUR API KEY HERE', :pin => 'YOUR PIN HERE', :version => 2
+puts BlockIo.set_options :api_key => 'ff65-c98e-b7e8-40b9', :pin => 'corvus2k', :version => 2
 
 begin
   puts BlockIo.get_new_address(:label => 'testDest')
@@ -12,11 +12,11 @@ rescue Exception => e
   puts e.to_s
 end
 
-puts BlockIo.withdraw_from_labels(:from_labels => 'default', :to_labels => 'testDest', :amount => '3.5')
+puts BlockIo.withdraw_from_labels(:from_labels => 'default', :to_label => 'testDest', :amount => '3.5')
 
 puts BlockIo.get_address_by_label(:label => 'default')
 
-puts BlockIo.get_transactions(:type => 'sent')
+puts BlockIo.get_transactions(:type => 'sent') # API v2 only
 
 puts BlockIo.get_current_price(:base_price => 'BTC')
 
