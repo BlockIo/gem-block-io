@@ -8,6 +8,239 @@ require 'securerandom'
 require 'base64'
 require 'ffi'
 
+module BlockIo
+
+  @api_key = nil
+  @base_url = "https://dev.block.io/api/VERSION/API_CALL/?api_key="
+  @pin = nil
+  @encryptionKey = nil
+  @conn_pool = nil
+  @version = nil
+
+  def self.set_options(args = {})
+    # initialize BlockIo
+    @api_key = args[:api_key]
+    @pin = args[:pin]
+    @encryptionKey = Helper.pinToAesKey(@pin) if !@pin.nil?
+
+    @conn_pool = ConnectionPool.new(size: 5, timeout: 300) { HTTPClient.new }
+    
+    @version = args[:version] || 1 # default version is 1
+    
+    self.api_call(['get_balance',""])
+  end
+
+  def self.method_missing(m, *args, &block)      
+
+    method_name = m.to_s
+
+    if ['withdraw', 'withdraw_from_address', 'withdraw_from_addresses', 'withdraw_from_user', 'withdraw_from_users', 'withdraw_from_label', 'withdraw_from_labels'].include?(m.to_s) then
+
+      self.withdraw(args.first, m.to_s)
+
+    else
+      params = get_params(args.first)
+      self.api_call([method_name, params])
+    end
+    
+  end 
+
+  def self.withdraw(args = {}, method_name = 'withdraw')
+    # validate arguments for withdrawal of funds TODO
+
+    raise Exception.new("PIN not set. Use BlockIo.set_options(:api_key=>'API KEY',:pin=>'SECRET PIN',:version=>'API VERSION')") if @pin.nil?
+
+    params = get_params(args)
+
+    params += "&pin=#{@pin}" if @version == 1 # Block.io handles the Secret PIN in the legacy API (v1)
+
+    response = self.api_call([method_name, params])
+    
+    if response['data'].has_key?('reference_id') then
+      # Block.io's asking us to provide some client-side signatures, let's get to it
+
+      # extract the passphrase
+      encrypted_passphrase = response['data']['encrypted_passphrase']['passphrase']
+
+      # let's get our private key
+      key = Helper.extractKey(encrypted_passphrase, @encryptionKey)
+
+      raise Exception.new('Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.') if key.public_key != response['data']['encrypted_passphrase']['signer_public_key']
+
+      # let's sign all the inputs we can
+      inputs = response['data']['inputs']
+
+      inputs.each do |input|
+        # iterate over all signers
+        
+        input['signers'].each do |signer|
+          # if our public key matches this signer's public key, sign the data
+
+          signer['signed_data'] = key.sign(input['data_to_sign']) if signer['signer_public_key'] == key.public_key
+
+        end
+        
+      end
+
+      # the response object is now signed, let's stringify it and finalize this withdrawal
+
+      response = self.api_call(['sign_and_finalize_withdrawal',{:signature_data => response['data'].to_json}])
+
+      # if we provided all the required signatures, this transaction went through
+      # otherwise Block.io responded with data asking for more signatures
+      # the latter will be the case for dTrust addresses
+    end
+
+    return response
+
+  end
+
+
+  private
+  
+  def self.api_call(endpoint)
+
+    body = nil
+
+    @conn_pool.with do |hc|
+      # prevent initiation of HTTPClients every time we make this call, use a connection_pool
+
+      hc.ssl_config.ssl_version = :TLSv1
+      response = hc.post("#{@base_url.gsub('API_CALL',endpoint[0]).gsub('VERSION', 'v'+@version.to_s) + @api_key}", endpoint[1])
+      
+      begin
+        body = JSON.parse(response.body)
+        raise Exception.new(body['data']['error_message']) if !body['status'].eql?('success')
+      rescue
+        raise Exception.new('Unknown error occurred. Please report this.')
+      end
+    end
+    
+    body
+  end
+
+  private
+
+  def self.get_params(args)
+    # construct the parameter string
+    params = ""
+    
+    args.each do |k,v|
+      params += '&' if params.length > 0
+      params += "#{k.to_s}=#{v.to_s}"
+    end
+
+    return params
+  end
+
+  public
+
+  class Key
+
+    def initialize(privkey = nil)
+      @curve = ::OpenSSL::PKey::EC.new("secp256k1")
+      @curve.generate_key if privkey.nil?
+      @curve.private_key = OpenSSL::BN.from_hex(privkey) if @curve.private_key.nil?
+      
+      @curve.public_key = ::OpenSSL::PKey::EC::Point.from_hex(@curve.group,OpenSSL_EC.regenerate_key(@curve.private_key_hex)[1]) if @curve.public_key.nil?
+    end 
+    
+    def private_key
+      # returns private key in hex form
+      return @curve.private_key_hex
+    end
+    
+    def public_key
+      # returns the compressed form of the public key to save network fees (shorter scripts)
+      @curve.public_key.group.point_conversion_form = :compressed
+      hex = @curve.public_key.to_hex.rjust(66, '0')
+      @curve.public_key.group.point_conversion_form = :uncompressed
+      return hex
+    end
+    
+    def sign(data)
+      # signed the given hexadecimal string
+
+      data_bin = [data].pack("H*") # convert hex to binary
+      
+      return @curve.dsa_sign_asn1(data_bin).unpack("H*")[0] # return the signed data in hex
+    end
+    
+    def self.from_passphrase(passphrase)
+      # create a private+public key pair from a given passphrase
+      # think of this as your brain wallet. be very sure to use a sufficiently long passphrase
+      # if you don't want a passphrase, just use Key.new and it will generate a random key for you
+      
+      raise Exception.new('Must provide passphrase at least 8 characters long.') if passphrase.nil? or passphrase.length < 8
+      
+      hashed_key = Helper.sha256([passphrase].pack("H*")) # must pass bytes to sha256
+
+      return Key.new(hashed_key)
+    end
+    
+  end
+  
+  module Helper
+    
+    def self.extractKey(encrypted_data, b64_enc_key)
+      # passphrase is in plain text
+      # encrypted_data is in base64, as it was stored on Block.io
+      # returns the private key extracted from the given encrypted data
+      
+      decrypted = self.decrypt(encrypted_data, b64_enc_key)
+      
+      return Key.from_passphrase(decrypted)
+    end
+    
+    def self.sha256(value)
+      # returns the hex of the hash of the given value
+      hash = Digest::SHA2.new(256)
+      hash << value
+      hash.hexdigest # return hex
+    end
+    
+    def self.pinToAesKey(secret_pin, iterations = 2048)
+      # converts the pincode string to PBKDF2
+      # returns a base64 version of PBKDF2 pincode
+      salt = ""
+      aes_key_bin = OpenSSL::PKCS5.pbkdf2_hmac(secret_pin, salt, iterations/2, 16, OpenSSL::Digest::SHA256.new)
+      aes_key_bin = OpenSSL::PKCS5.pbkdf2_hmac(aes_key_bin.unpack("H*")[0], salt, iterations/2, 32, OpenSSL::Digest::SHA256.new)
+      
+      return Base64.strict_encode64(aes_key_bin) # the base64 encryption key
+    end
+    
+    # Decrypts a block of data (encrypted_data) given an encryption key
+    def self.decrypt(encrypted_data, b64_enc_key, iv = nil, cipher_type = 'AES-256-ECB')
+      
+      response = nil
+
+      begin
+        aes = OpenSSL::Cipher::Cipher.new(cipher_type)
+        aes.decrypt
+        aes.key = Base64.strict_decode64(b64_enc_key)
+        aes.iv = iv if iv != nil
+        response = aes.update(Base64.strict_decode64(encrypted_data)) + aes.final
+      rescue Exception => e
+        # decryption failed, must be an invalid Secret PIN
+        raise Exception.new('Invalid Secret PIN provided.')
+      end
+
+      return response
+    end
+    
+    # Encrypts a block of data given an encryption key
+    def self.encrypt(data, b64_enc_key, iv = nil, cipher_type = 'AES-256-ECB')
+      aes = OpenSSL::Cipher::Cipher.new(cipher_type)
+      aes.encrypt
+      aes.key = Base64.strict_decode64(b64_enc_key)
+      aes.iv = iv if iv != nil
+      Base64.strict_encode64(aes.update(data) + aes.final)
+    end
+  end
+
+end
+
+# openssl stuff for signing data and converting private keys to (compressed) public keys
 module OpenSSL_EC
   extend FFI::Library
   ffi_lib 'ssl'
@@ -89,115 +322,6 @@ module OpenSSL_EC
   end
 end
 
-class Key
-
-  def initialize(privkey = nil)
-    @curve = ::OpenSSL::PKey::EC.new("secp256k1")
-    @curve.generate_key if privkey.nil?
-    @curve.private_key = OpenSSL::BN.from_hex(privkey) if @curve.private_key.nil?
-
-    @curve.public_key = ::OpenSSL::PKey::EC::Point.from_hex(@curve.group,OpenSSL_EC.regenerate_key(@curve.private_key_hex)[1]) if @curve.public_key.nil?
-  end 
-
-  def private_key
-    # returns private key in hex form
-    return @curve.private_key_hex
-  end
-
-  def public_key
-    # returns the compressed form of the public key to save network fees (shorter scripts)
-    @curve.public_key.group.point_conversion_form = :compressed
-    hex = @curve.public_key.to_hex.rjust(66, '0')
-    @curve.public_key.group.point_conversion_form = :uncompressed
-    return hex
-  end
-
-  def sign(data)
-    # signs the given binary data
-    return @curve.dsa_sign_asn1(data)
-  end
-
-  def self.from_passphrase(passphrase)
-    # create a private+public key pair from a given passphrase
-    # think of this as your brain wallet. be very sure to use a sufficiently long passphrase
-    # if you don't want a passphrase, just use Key.new and it will generate a random key for you
-
-    raise Exception.new('Must provide passphrase at least 8 characters long.') if passphrase.nil? or passphrase.length < 8
-
-#    # get the PBKDF2 key
-#    salt = ""
-#    iterations = 1000
-
-    hashed_key = BlockHelper.sha256([passphrase].pack("H*")) # must pass bytes to sha256
-#    hashed_key = OpenSSL::PKCS5.pbkdf2_hmac(passphrase, salt, iterations, 32, OpenSSL::Digest::SHA256.new).unpack("H*")[0] # in hex
-
-    return Key.new(hashed_key)
-  end
-
-end
-
-module BlockHelper
-
-  def self.extractPrivateKey(encrypted_data, passphrase)
-    # passphrase is in plain text
-    # encrypted_data is in base64, as it was stored on Block.io
-    # returns the private key extracted from the given encrypted data
-    
-    decrypted = BlockHelper.decrypt(encrypted_data, passphrase)
-    private_key = Key.from_passphrase(decrypted).private_key
-    return private_key
-  end
-
-  def self.getPublicKey(private_key)
-    # private_key must be in hex
-    # return compressed public key
-    return Key.new(private_key).public_key
-  end
-
-  def self.sha256(value)
-    # returns the hex of the hash of the given value
-    hash = Digest::SHA2.new(256)
-    hash << value
-    hash.hexdigest # return hex
-  end
-
-  def self.signData(data, private_key)
-    # data in hex form, private_key in hex form
-    # returns the signed data in hex form
-
-    data_bin = [data].pack("H*") # convert hex to binary
-
-    key = Key.new(private_key)
-    return key.sign(data_bin).unpack("H*")[0]
-  end
-
-  def self.pinToAesKey(passphrase, iterations = 1)
-    # converts the pincode string to PBKDF2
-    # returns a base64 version of PBKDF2 pincode
-    salt = ""
-    aes_key_bin = OpenSSL::PKCS5.pbkdf2_hmac(passphrase, salt, iterations, 32, OpenSSL::Digest::SHA256.new)
-    return Base64.strict_encode64(aes_key_bin)
-  end
-
-  # Decrypts a block of data (encrypted_data) given an encryption key
-  def self.decrypt(encrypted_data, passphrase, iv = nil, cipher_type = 'AES-256-ECB')
-    aes = OpenSSL::Cipher::Cipher.new(cipher_type)
-    aes.decrypt
-    aes.key = Base64.strict_decode64(BlockHelper.pinToAesKey(passphrase))
-    aes.iv = iv if iv != nil
-    aes.update(Base64.strict_decode64(encrypted_data)) + aes.final
-  end
-  
-  # Encrypts a block of data given an encryption key
-  def self.encrypt(data, passphrase, iv = nil, cipher_type = 'AES-256-ECB')
-    aes = OpenSSL::Cipher::Cipher.new(cipher_type)
-    aes.encrypt
-    aes.key = Base64.strict_decode64(BlockHelper.pinToAesKey(passphrase))
-    aes.iv = iv if iv != nil
-    Base64.strict_encode64(aes.update(data) + aes.final)
-  end
-end
-
 module ::OpenSSL
   class BN
     def self.from_hex(hex); new(hex, 16); end
@@ -218,202 +342,3 @@ module ::OpenSSL
   end
 end
 
-module BlockIo
-
-  @api_key = nil
-  @base_url = "https://block.io/api/v1/API_CALL/?api_key="
-  @pin = nil
-  @conn_pool = nil
-
-  def self.set_options(args = {})
-    # initialize BlockIo
-    @api_key = args[:api_key]
-    @pin = args[:pin]
-    @conn_pool = ConnectionPool.new(size: 5, timeout: 300) { HTTPClient.new }
-
-    self.api_call(['get_balance',""])
-  end
-
-  def self.get_offline_vault_balance
-    # returns the offline vault's balance
-    endpoint = ["get_offline_vault_balance",""]
-    self.api_call(endpoint)
-  end
-
-  def self.get_offline_vault_address
-    # returns the offline vault's address and balance info
-    self.get_offline_vault_balance
-  end
-
-  def self.get_balance
-    # returns the balances for your account tied to the API key
-    endpoint = ["get_balance", ""] 
-    self.api_call(endpoint)
-  end
-
-  def self.get_user_balance(args)
-    # returns the specified user's balance
-    
-    user_id = args[:user_id]
-
-    raise Exception.new("Must provide user_id") if user_id.nil?
-
-    endpoint = ['get_user_balance',"&user_id=#{user_id}"]
-
-    self.api_call(endpoint)
-  end
-
-  def self.get_address_balance(args)
-    # returns the specified address or address_label's balance
-    
-    address = args[:address]
-    address_label = args[:address_label]
-
-    raise Exception.new("Must provide ONE of address or address_label") if (!address.nil? and !address_label.nil?) or (address.nil? and address_label.nil?)
-
-    endpoint = ['get_address_balance',"&address=#{address}"] unless address.nil?
-    endpoint = ['get_address_balance',"&address_label=#{address_label}"] unless address_label.nil?
-
-    self.api_call(endpoint)
-  end
-
-  def self.get_current_price(args = {})
-    # returns prices from different exchanges as an array of hashes
-    price_base = args[:price_base]
-
-    endpoint = ['get_current_price', '']
-    endpoint = ['get_current_price',"&price_base=#{price_base}"] unless price_base.nil? or price_base.to_s.length == 0
-
-    self.api_call(endpoint)
-  end
-
-  def self.withdraw_from_user(args = {})
-    # withdraws coins from the given user(s)
-    self.withdraw(args)
-  end
-
-  def self.withdraw(args = {})
-    # validate arguments for withdrawal of funds TODO
-
-    raise Exception.new("PIN not set. Use BlockIo.set_options(:api_key=>'API KEY',:pin=>'SECRET PIN')") if @pin.nil?
-
-    # validate argument sets
-    amount = args[:amount]
-    to_user_id = args[:to_user_id]
-    payment_address = args[:payment_address]
-    from_user_ids = args[:from_user_ids] || args[:from_user_id]
-
-    raise Exception.new("Must provide ONE of payment_address, or to_user_id") if (!to_user_id.nil? and !payment_address.nil?) or (to_user_id.nil? and payment_address.nil?)
-    raise Exception.new("Must provide amount to withdraw") if amount.nil?
-
-    endpoint = ['withdraw',"&amount=#{amount}&payment_address=#{payment_address}&pin=#{@pin}"] unless payment_address.nil?
-    endpoint = ['withdraw',"&amount=#{amount}&to_user_id=#{to_user_id}&pin=#{@pin}"] unless to_user_id.nil?
-    endpoint = ['withdraw',"&amount=#{amount}&from_user_ids=#{from_user_ids}&pin=#{@pin}&payment_address=#{payment_address}"] unless from_user_ids.nil? or payment_address.nil?
-    endpoint = ['withdraw',"&amount=#{amount}&from_user_ids=#{from_user_ids}&to_user_id=#{to_user_id}&pin=#{@pin}"] unless to_user_id.nil? or from_user_ids.nil?
-
-    self.api_call(endpoint)
-  end
-
-  def self.get_new_address(args = {})
-    # validate arguments for getting a new address
-    address_label = args[:address_label]
-
-    endpoint = ['get_new_address','']
-    endpoint = ["get_new_address","&address_label=#{address_label}"] unless address_label.nil?
-
-    self.api_call(endpoint)
-  end
-
-  def self.create_user(args = {})
-    # validate arguments for getting a new address
-    address_label = args[:address_label]
-
-    endpoint = ['create_user','']
-    endpoint = ['create_user',"&address_label=#{address_label}"] unless address_label.nil?
-
-    self.api_call(endpoint)
-  end  
-
-  def self.get_my_addresses(args = {})
-    # returns all the addresses in your account tied to the API key
-    endpoint = ["get_my_addresses",""]
-
-    self.api_call(endpoint)
-  end
-
-  def self.get_users(args = {})
-    # returns all the addresses in your account tied to the API key
-    endpoint = ['get_users',""]
-
-    self.api_call(endpoint)
-  end
-
-  def self.get_address_received(args = {})
-    # get coins received, confirmed and unconfirmed, by the given address, address_label, or user_id
-    address_label = args[:address_label]
-    user_id = args[:user_id]
-    address = args[:address]
-
-    raise Exception.new("Must provide ONE of address_label, user_id, or address") unless args.keys.length == 1 and (!address_label.nil? or !user_id.nil? or !address.nil?)
-
-    endpoint = ['get_address_received','']
-    endpoint = ["get_address_received","&user_id=#{user_id}"] unless user_id.nil?
-    endpoint = ['get_address_received',"&address_label=#{address_label}"] unless address_label.nil?
-    endpoint = ['get_address_received',"&address=#{address}"] unless address.nil?
-
-    self.api_call(endpoint)
-  end
-
-  def self.get_user_received(args = {})
-    # returns the user's received coins, confirmed and unconfirmed
-
-    user_id = args[:user_id]
-
-    raise Exception.new("Must provide user_id") if user_id.nil?
-
-    self.get_address_received(:user_id => user_id)
-  end
-
-  def self.get_address_by_label(args = {})
-    # get address by label
-
-    address_label = args[:address_label]
-
-    raise Exception.new("Must provide address_label") if address_label.nil?
-
-    endpoint = ["get_address_by_label","&address_label=#{address_label}"]
-
-    self.api_call(endpoint)
-  end
-
-  def self.get_user_address(args = {})
-    # gets the user's address
-
-    user_id = args[:user_id]
-
-    raise Exception.new("Must provide user_id") if user_id.nil?
-
-    endpoint = ['get_user_address',"&user_id=#{user_id}"]
-
-    self.api_call(endpoint)
-  end
-
-  private
-
-  def self.api_call(endpoint)
-
-    body = nil
-
-    @conn_pool.with do |hc|
-      # prevent initiation of HTTPClients every time we make this call, use a connection_pool
-
-      hc.ssl_config.ssl_version = :TLSv1
-      response = hc.get("#{@base_url.gsub('API_CALL',endpoint[0]) + @api_key + endpoint[1]}")
-      body = JSON.parse(response.body)
-      
-    end
-    
-    body
-  end
-
-end
