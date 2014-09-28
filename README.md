@@ -36,7 +36,7 @@ And you're good to go:
     BlockIo.get_new_address
     BlockIo.get_my_addresses
 
-For more information, see https://block.io/api
+For more information, see https://block.io/api/simple/ruby
 
 ## Contributing
 
