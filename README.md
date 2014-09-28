@@ -17,6 +17,8 @@ Or install it yourself as:
     $ gem install block_io
 
 ## Changelog
+
+*09/27/14*: Now supporting client-side signatures. API v2 recommended.
    
 *07/01/14*: Forcing TLSv1 usage since Block.io does not support SSLv3 due to its vulnerable nature. Fixed:
 	    HTTPClient.new.ssl_config.ssl_version = :TLSv1
@@ -27,7 +29,7 @@ Or install it yourself as:
 It's super easy to get started. In your Ruby shell ($ irb), for example, do this:
 
     require 'block_io'
-    BlockIo.set_options :api_key => 'API KEY', :pin => 'SECRET PIN'
+    BlockIo.set_options :api_key => 'API KEY', :pin => 'SECRET PIN', :version => 2
      
 And you're good to go:
 
@@ -38,7 +40,7 @@ For more information, see https://block.io/api
 
 ## Contributing
 
-1. Fork it ( https://github.com/[my-github-username]/block_io/fork )
+1. Fork it ( https://github.com/BlockIo/gem-block-io/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
