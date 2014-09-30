@@ -2,11 +2,11 @@ require 'block_io/version'
 require 'httpclient'
 require 'json'
 require 'connection_pool'
+require 'ecdsa'
 require 'openssl'
 require 'digest'
 require 'securerandom'
 require 'base64'
-require 'ffi'
 
 module BlockIo
 
@@ -138,32 +138,36 @@ module BlockIo
   class Key
 
     def initialize(privkey = nil)
-      @curve = ::OpenSSL::PKey::EC.new("secp256k1")
-      @curve.generate_key if privkey.nil?
-      @curve.private_key = OpenSSL::BN.from_hex(privkey) if @curve.private_key.nil?
-      
-      @curve.public_key = ::OpenSSL::PKey::EC::Point.from_hex(@curve.group,OpenSSL_EC.regenerate_key(@curve.private_key_hex)[1]) if @curve.public_key.nil?
+      # the privkey must be in hex if at all provided
+
+      @group = ECDSA::Group::Secp256k1
+      @private_key = privkey.to_i(16) || 1 + SecureRandom.random_number(group.order - 1)
+      @public_key = @group.generator.multiply_by_scalar(@private_key)
+
     end 
     
     def private_key
       # returns private key in hex form
-      return @curve.private_key_hex
+      return @private_key.to_s(16)
     end
     
     def public_key
       # returns the compressed form of the public key to save network fees (shorter scripts)
-      @curve.public_key.group.point_conversion_form = :compressed
-      hex = @curve.public_key.to_hex.rjust(66, '0')
-      @curve.public_key.group.point_conversion_form = :uncompressed
-      return hex
+
+      return ECDSA::Format::PointOctetString.encode(@public_key, compression: true).unpack("H*")[0]
     end
     
     def sign(data)
       # signed the given hexadecimal string
 
-      data_bin = [data].pack("H*") # convert hex to binary
+      k = 1 + SecureRandom.random_number(@group.order - 1) # k, can be made deterministic TODO
       
-      return @curve.dsa_sign_asn1(data_bin).unpack("H*")[0] # return the signed data in hex
+      signature = ECDSA.sign(@group, @private_key, [data].pack("H*"), k)
+
+      # DER encode this, and return it in hex form
+
+      return ECDSA::Format::SignatureDerString.encode(signature).unpack("H*")[0]
+
     end
     
     def self.from_passphrase(passphrase)
@@ -239,106 +243,3 @@ module BlockIo
   end
 
 end
-
-# openssl stuff for signing data and converting private keys to (compressed) public keys
-module OpenSSL_EC
-  extend FFI::Library
-  ffi_lib 'ssl'
-
-  NID_secp256k1 = 714
-
-  attach_function :SSL_library_init, [], :int
-  attach_function :ERR_load_crypto_strings, [], :void
-  attach_function :SSL_load_error_strings, [], :void
-  attach_function :RAND_poll, [], :int
-
-  #attach_function :BN_bin2bn, [:string, :int, :pointer], :pointer
-  attach_function :BN_bin2bn, [:pointer, :int, :pointer], :pointer
-  attach_function :EC_KEY_new_by_curve_name, [:int], :pointer
-  attach_function :EC_KEY_get0_group, [:pointer], :pointer
-  attach_function :BN_new, [], :pointer
-  attach_function :BN_CTX_new, [], :pointer
-  attach_function :EC_GROUP_get_order, [:pointer, :pointer, :pointer], :int
-  attach_function :EC_POINT_new, [:pointer], :pointer
-  attach_function :EC_POINT_mul, [:pointer, :pointer, :pointer, :pointer, :pointer, :pointer], :int
-  attach_function :EC_KEY_set_private_key, [:pointer, :pointer], :int
-  attach_function :EC_KEY_set_public_key,  [:pointer, :pointer], :int
-  attach_function :BN_free, [:pointer], :int
-  attach_function :EC_POINT_free, [:pointer], :int
-  attach_function :BN_CTX_free, [:pointer], :int
-  attach_function :EC_KEY_free, [:pointer], :int
-  attach_function :i2o_ECPublicKey, [:pointer, :pointer], :uint
-  attach_function :i2d_ECPrivateKey, [:pointer, :pointer], :int
-
-  def self.regenerate_key(private_key)
-    # given a private key, generate the public key
-
-    private_key = [private_key].pack("H*") if private_key.bytesize >= (32*2)
-
-    private_key = FFI::MemoryPointer.new(:uint8, private_key.bytesize)
-                    .put_bytes(0, private_key, 0, private_key.bytesize)
- 
-    init_ffi_ssl
-    eckey = EC_KEY_new_by_curve_name(NID_secp256k1)
-    priv_key = BN_bin2bn(private_key, private_key.size, BN_new())
-
-    group, order, ctx = EC_KEY_get0_group(eckey), BN_new(), BN_CTX_new()
-    EC_GROUP_get_order(group, order, ctx)
-
-    pub_key = EC_POINT_new(group)
-    EC_POINT_mul(group, pub_key, priv_key, nil, nil, ctx)
-    EC_KEY_set_private_key(eckey, priv_key)
-    EC_KEY_set_public_key(eckey, pub_key)
-
-    BN_free(order)
-    BN_CTX_free(ctx)
-    EC_POINT_free(pub_key)
-    BN_free(priv_key)
-
-    length = i2d_ECPrivateKey(eckey, nil)
-    ptr = FFI::MemoryPointer.new(:pointer)
-    priv_hex = if i2d_ECPrivateKey(eckey, ptr) == length
-      ptr.read_pointer.read_string(length)[9...9+32].unpack("H*")[0]
-    end
-
-    length = i2o_ECPublicKey(eckey, nil)
-    ptr = FFI::MemoryPointer.new(:pointer)
-    pub_hex = if i2o_ECPublicKey(eckey, ptr) == length
-      ptr.read_pointer.read_string(length).unpack("H*")[0]
-    end
-
-    EC_KEY_free(eckey)
-
-    [ priv_hex, pub_hex ]
-  end
-
-  def self.init_ffi_ssl
-    return if @ssl_loaded
-    SSL_library_init()
-    ERR_load_crypto_strings()
-    SSL_load_error_strings()
-    RAND_poll()
-    @ssl_loaded = true
-  end
-end
-
-module ::OpenSSL
-  class BN
-    def self.from_hex(hex); new(hex, 16); end
-    def to_hex; to_i.to_s(16); end
-    def to_mpi; to_s(0).unpack("C*"); end
-  end
-  class PKey::EC
-    def private_key_hex; private_key.to_hex.rjust(64, '0'); end
-    def public_key_hex;  public_key.to_hex.rjust(130, '0'); end
-    def pubkey_compressed?; public_key.group.point_conversion_form == :compressed; end
-  end
-  class PKey::EC::Point
-    def self.from_hex(group, hex)
-      new(group, BN.from_hex(hex))
-    end
-    def to_hex; to_bn.to_hex; end
-    def self.bn2mpi(hex) BN.from_hex(hex).to_mpi; end
-  end
-end
-
