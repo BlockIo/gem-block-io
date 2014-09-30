@@ -160,9 +160,9 @@ module BlockIo
     def sign(data)
       # signed the given hexadecimal string
 
-      k = 1 + SecureRandom.random_number(@group.order - 1) # k, can be made deterministic TODO
+      nonce = 1 + SecureRandom.random_number(@group.order - 1) # nonce, can be made deterministic TODO
       
-      signature = ECDSA.sign(@group, @private_key, [data].pack("H*"), k)
+      signature = ECDSA.sign(@group, @private_key, [data].pack("H*"), nonce)
 
       # DER encode this, and return it in hex form
 
