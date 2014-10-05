@@ -11,7 +11,7 @@ require 'base64'
 module BlockIo
 
   @api_key = nil
-  @base_url = "https://dev.block.io/api/VERSION/API_CALL/?api_key="
+  @base_url = "https://block.io/api/VERSION/API_CALL/?api_key="
   @pin = nil
   @encryptionKey = nil
   @conn_pool = nil
@@ -25,7 +25,7 @@ module BlockIo
 
     @conn_pool = ConnectionPool.new(size: 5, timeout: 300) { HTTPClient.new }
     
-    @version = args[:version] || 1 # default version is 1
+    @version = args[:version] || 2 # default version is 2
     
     self.api_call(['get_balance',""])
   end
