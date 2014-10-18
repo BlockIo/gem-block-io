@@ -167,7 +167,7 @@ module BlockIo
       # BIP0062 -- use lower S values only
       r, s = signature.components
 
-      over_two = s >> 1 # half of what it was                     
+      over_two = @group.order >> 1 # half of what it was                     
       s = @group.order - s if (s > over_two)
 
       signature = ECDSA::Signature.new(r, s)
