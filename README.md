@@ -14,14 +14,11 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install block_io -v=1.0.1
+    $ gem install block_io -v=1.0.2
 
 ## Changelog
 
-*09/27/14*: Now supporting client-side signatures. API v2 recommended.
-   
-*07/01/14*: Forcing TLSv1 usage since Block.io does not support SSLv3 due to its vulnerable nature. Fixed:
-	    HTTPClient.new.ssl_config.ssl_version = :TLSv1
+*10/18/14*: Now using deterministic signatures (RFC6979), and BIP62 to hinder transaction malleability.  
 
 
 ## Usage
