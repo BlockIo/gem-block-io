@@ -14,7 +14,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install block_io -v=1.0.2
+    $ gem install block_io -v=1.0.3
 
 ## Changelog
 
