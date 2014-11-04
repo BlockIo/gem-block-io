@@ -5,6 +5,7 @@ require 'connection_pool'
 require 'ecdsa'
 require 'openssl'
 require 'digest'
+require 'pbkdf2'
 require 'securerandom'
 require 'base64'
 
@@ -267,9 +268,11 @@ module BlockIo
       # converts the pincode string to PBKDF2
       # returns a base64 version of PBKDF2 pincode
       salt = ""
-      aes_key_bin = OpenSSL::PKCS5.pbkdf2_hmac(secret_pin, salt, iterations/2, 16, OpenSSL::Digest::SHA256.new)
-      aes_key_bin = OpenSSL::PKCS5.pbkdf2_hmac(aes_key_bin.unpack("H*")[0], salt, iterations/2, 32, OpenSSL::Digest::SHA256.new)
-      
+
+      # pbkdf2-ruby gem uses SHA256 as the default hash function
+      aes_key_bin = PBKDF2.new(:password => secret_pin, :salt => salt, :iterations => iterations/2, :key_length => 128/8).value
+      aes_key_bin = PBKDF2.new(:password => aes_key_bin.unpack("H*")[0], :salt => salt, :iterations => iterations/2, :key_length => 256/8).value
+
       return Base64.strict_encode64(aes_key_bin) # the base64 encryption key
     end
     

@@ -14,10 +14,11 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install block_io -v=1.0.3
+    $ gem install block_io -v=1.0.4
 
 ## Changelog
 
+*11/03/14*: Reduce dependence on OpenSSL. PBKDF2 function is now Ruby-based. Should work well with Heroku's libraries.
 *10/18/14*: Now using deterministic signatures (RFC6979), and BIP62 to hinder transaction malleability.  
 
 
