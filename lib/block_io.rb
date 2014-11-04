@@ -122,9 +122,10 @@ module BlockIo
 
   private
 
-  def self.get_params(args)
+  def self.get_params(args = {})
     # construct the parameter string
     params = ""
+    args = {} if args.nil?
     
     args.each do |k,v|
       params += '&' if params.length > 0
