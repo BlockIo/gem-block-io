@@ -5,6 +5,7 @@ require 'connection_pool'
 require 'ecdsa'
 require 'openssl'
 require 'digest'
+require 'pbkdf2'
 require 'securerandom'
 require 'base64'
 
@@ -160,14 +161,20 @@ module BlockIo
     def sign(data)
       # signed the given hexadecimal string
 
-      nonce = 1 + SecureRandom.random_number(@group.order - 1) # nonce, can be made deterministic TODO
+      nonce = deterministicGenerateK([data].pack("H*"), @private_key) # RFC6979
       
-      signature = ECDSA.sign(@group, @private_key, [data].pack("H*"), nonce)
+      signature = ECDSA.sign(@group, @private_key, data.to_i(16), nonce)
+
+      # BIP0062 -- use lower S values only
+      r, s = signature.components
+
+      over_two = @group.order >> 1 # half of what it was                     
+      s = @group.order - s if (s > over_two)
+
+      signature = ECDSA::Signature.new(r, s)
 
       # DER encode this, and return it in hex form
-
       return ECDSA::Format::SignatureDerString.encode(signature).unpack("H*")[0]
-
     end
     
     def self.from_passphrase(passphrase)
@@ -182,6 +189,60 @@ module BlockIo
       return Key.new(hashed_key)
     end
     
+    def isPositive(i)
+      sig = "!+-"[i <=> 0]
+      
+      return sig.eql?("+")
+    end
+    
+    def deterministicGenerateK(data, privkey, group = ECDSA::Group::Secp256k1)
+      # returns a deterministic K  -- RFC6979
+
+      hash = data.bytes.to_a
+
+      x = [privkey.to_s(16)].pack("H*").bytes.to_a
+      
+      k = []
+      32.times { k.insert(0, 0) }
+      
+      v = []
+      32.times { v.insert(0, 1) }
+      
+      # step D
+      k = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), [].concat(v).concat([0]).concat(x).concat(hash).pack("C*")).bytes.to_a
+      
+      # step E
+      v = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), v.pack("C*")).bytes.to_a
+      
+      #  puts "E: " + v.pack("C*").unpack("H*")[0]
+      
+      # step F
+      k = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), [].concat(v).concat([1]).concat(x).concat(hash).pack("C*")).bytes.to_a
+      
+      # step G
+      v = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), v.pack("C*")).bytes.to_a
+      
+      # step H2b (Step H1/H2a ignored)
+      v = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), v.pack("C*")).bytes.to_a
+      
+      h2b = v.pack("C*").unpack("H*")[0]
+      tNum = h2b.to_i(16)
+      
+      # step H3
+      while (!isPositive(tNum) or tNum >= group.order) do
+        # k = crypto.HmacSHA256(Buffer.concat([v, new Buffer([0])]), k)
+        k = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), [].concat(v).concat([0]).pack("C*")).bytes.to_a
+        
+        # v = crypto.HmacSHA256(v, k)
+        v = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), v.pack("C*")).bytes.to_a
+        
+        # T = BigInteger.fromBuffer(v)
+        tNum = v.pack("C*").unpack("H*")[0].to_i(16)
+      end
+      
+      return tNum
+    end
+
   end
   
   module Helper
@@ -207,9 +268,11 @@ module BlockIo
       # converts the pincode string to PBKDF2
       # returns a base64 version of PBKDF2 pincode
       salt = ""
-      aes_key_bin = OpenSSL::PKCS5.pbkdf2_hmac(secret_pin, salt, iterations/2, 16, OpenSSL::Digest::SHA256.new)
-      aes_key_bin = OpenSSL::PKCS5.pbkdf2_hmac(aes_key_bin.unpack("H*")[0], salt, iterations/2, 32, OpenSSL::Digest::SHA256.new)
-      
+
+      # pbkdf2-ruby gem uses SHA256 as the default hash function
+      aes_key_bin = PBKDF2.new(:password => secret_pin, :salt => salt, :iterations => iterations/2, :key_length => 128/8).value
+      aes_key_bin = PBKDF2.new(:password => aes_key_bin.unpack("H*")[0], :salt => salt, :iterations => iterations/2, :key_length => 256/8).value
+
       return Base64.strict_encode64(aes_key_bin) # the base64 encryption key
     end
     
