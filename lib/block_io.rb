@@ -36,9 +36,12 @@ module BlockIo
     method_name = m.to_s
 
     if ['withdraw', 'withdraw_from_address', 'withdraw_from_addresses', 'withdraw_from_user', 'withdraw_from_users', 'withdraw_from_label', 'withdraw_from_labels'].include?(m.to_s) then
-
+      # need to withdraw from an address
       self.withdraw(args.first, m.to_s)
 
+    elsif ['sweep_from_address'].include?(m.to_s) then
+      # need to sweep from an address
+      self.sweep(args.first, m.to_s)
     else
       params = get_params(args.first)
       self.api_call([method_name, params])
@@ -96,6 +99,51 @@ module BlockIo
 
   end
 
+  def self.sweep(args = {}, method_name = 'sweep_from_address')
+    # sweep coins from a given address + key
+
+    raise Exception.new("No private_key provided.") unless args.has_key?(:private_key)
+
+    key = Key.from_wif(args[:private_key])
+
+    args[:public_key] = key.public_key # so Block.io can match things up
+    args.delete(:private_key) # the key must never leave this machine
+
+    params = get_params(args)
+
+    response = self.api_call([method_name, params])
+    
+    if response['data'].has_key?('reference_id') then
+      # Block.io's asking us to provide some client-side signatures, let's get to it
+
+      # let's sign all the inputs we can
+      inputs = response['data']['inputs']
+
+      inputs.each do |input|
+        # iterate over all signers
+        
+        input['signers'].each do |signer|
+          # if our public key matches this signer's public key, sign the data
+
+          signer['signed_data'] = key.sign(input['data_to_sign']) if signer['signer_public_key'] == key.public_key
+
+        end
+        
+      end
+
+      # the response object is now signed, let's stringify it and finalize this withdrawal
+
+      response = self.api_call(['sign_and_finalize_sweep',{:signature_data => response['data'].to_json}])
+
+      # if we provided all the required signatures, this transaction went through
+      # otherwise Block.io responded with data asking for more signatures
+      # the latter will be the case for dTrust addresses
+    end
+
+    return response
+
+  end
+
 
   private
   
@@ -139,12 +187,13 @@ module BlockIo
 
   class Key
 
-    def initialize(privkey = nil)
+    def initialize(privkey = nil, compressed = true)
       # the privkey must be in hex if at all provided
 
       @group = ECDSA::Group::Secp256k1
       @private_key = privkey.to_i(16) || 1 + SecureRandom.random_number(group.order - 1)
       @public_key = @group.generator.multiply_by_scalar(@private_key)
+      @compressed = compressed
 
     end 
     
@@ -156,7 +205,7 @@ module BlockIo
     def public_key
       # returns the compressed form of the public key to save network fees (shorter scripts)
 
-      return ECDSA::Format::PointOctetString.encode(@public_key, compression: true).unpack("H*")[0]
+      return ECDSA::Format::PointOctetString.encode(@public_key, compression: @compressed).unpack("H*")[0]
     end
     
     def sign(data)
@@ -188,6 +237,19 @@ module BlockIo
       hashed_key = Helper.sha256([passphrase].pack("H*")) # must pass bytes to sha256
 
       return Key.new(hashed_key)
+    end
+
+    def self.from_wif(wif)
+      # returns a new key extracted from the Wallet Import Format provided
+      # TODO check against checksum
+
+      hexkey = Helper.decode_base58(wif)
+      actual_key = hexkey[2...66]
+
+      compressed = hexkey[2..hexkey.length].length-8 > 64 and hexkey[2..hexkey.length][64...66] == '01'
+
+      return Key.new(actual_key, compressed)
+
     end
     
     def isPositive(i)
@@ -303,6 +365,41 @@ module BlockIo
       aes.key = Base64.strict_decode64(b64_enc_key)
       aes.iv = iv if iv != nil
       Base64.strict_encode64(aes.update(data) + aes.final)
+    end
+
+    # courtesy bitcoin-ruby
+    
+    def self.int_to_base58(int_val, leading_zero_bytes=0)
+      alpha = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+      base58_val, base = '', alpha.size
+      while int_val > 0
+        int_val, remainder = int_val.divmod(base)
+        base58_val = alpha[remainder] + base58_val
+      end
+      base58_val
+    end
+    
+    def self.base58_to_int(base58_val)
+      alpha = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+      int_val, base = 0, alpha.size
+      base58_val.reverse.each_char.with_index do |char,index|
+        raise ArgumentError, 'Value not a valid Base58 String.' unless char_index = alpha.index(char)
+        int_val += char_index*(base**index)
+      end
+      int_val
+    end
+    
+    def self.encode_base58(hex)
+      leading_zero_bytes  = (hex.match(/^([0]+)/) ? $1 : '').size / 2
+      ("1"*leading_zero_bytes) + Helper.int_to_base58( hex.to_i(16) )
+    end
+    
+    def self.decode_base58(base58_val)
+      s = Helper.base58_to_int(base58_val).to_s(16); s = (s.bytesize.odd? ? '0'+s : s)
+      s = '' if s == '00'
+      leading_zero_bytes = (base58_val.match(/^([1]+)/) ? $1 : '').size
+      s = ("00"*leading_zero_bytes) + s  if leading_zero_bytes > 0
+      s
     end
   end
 
