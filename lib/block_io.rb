@@ -29,6 +29,8 @@ module BlockIo
     
     @version = args[:version] || 2 # default version is 2
     
+    @network = nil
+
     self.api_call(['get_balance',""])
   end
 
