@@ -18,10 +18,10 @@ Or install it yourself as:
 
 ## Changelog
 
-*09/27/14*: Now supporting client-side signatures. API v2 recommended.
-   
-*07/01/14*: Forcing TLSv1 usage since Block.io does not support SSLv3 due to its vulnerable nature. Fixed:
-	    HTTPClient.new.ssl_config.ssl_version = :TLSv1
+*01/21/15*: Added ability to sweep coins from one address to another.  
+*11/04/14*: Fix issue with nil parameters in an API call.  
+*11/03/14*: Reduce dependence on OpenSSL. PBKDF2 function is now Ruby-based. Should work well with Heroku's libraries.  
+*10/18/14*: Now using deterministic signatures (RFC6979), and BIP62 to hinder transaction malleability.  
 
 
 ## Usage
