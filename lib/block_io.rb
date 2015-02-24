@@ -138,6 +138,7 @@ module BlockIo
       begin
         body = JSON.parse(response.body)
         raise Exception.new(body['data']['error_message']) if !body['status'].eql?('success')
+        @network = body['data']['network'] if body['data'].key?('network') # set the current network
       rescue
         raise Exception.new('Unknown error occurred. Please report this.')
       end
@@ -173,18 +174,40 @@ module BlockIo
       @public_key = @group.generator.multiply_by_scalar(@private_key)
       @compressed = compressed
 
+      @privkey_versions = {
+        'BTC' => '80',
+        'BTCTEST' => 'ef',
+        'DOGE' => '9e',
+        'DOGETEST' => 'f1',
+        'LTC' => 'b0',
+        'LTCTEST' => 'ef'
+      }
+
+      @address_versions = {
+        'BTC' => '00',
+        'BTCTEST' => '6f',
+        'DOGE' => '1e',
+        'DOGETEST' => '71',
+        'LTC' => '30',
+        'LTCTEST' => '6f'
+      }
     end 
     
     def private_key
       # returns private key in hex form
-      return @private_key.to_s(16)
+      @private_key.to_s(16)
     end
+    alias_method :privateKey, :private_key
+    alias_method :privKey, :private_key
+    alias_method :privkey, :private_key
     
     def public_key
       # returns the compressed form of the public key to save network fees (shorter scripts)
-
-      return ECDSA::Format::PointOctetString.encode(@public_key, compression: @compressed).unpack("H*")[0]
+      ECDSA::Format::PointOctetString.encode(@public_key, compression: @compressed).unpack("H*")[0]
     end
+    alias_method :publicKey, :public_key
+    alias_method :pubKey, :public_key
+    alias_method :pubkey, :public_key
     
     def sign(data)
       # signed the given hexadecimal string
@@ -202,9 +225,9 @@ module BlockIo
       signature = ECDSA::Signature.new(r, s)
 
       # DER encode this, and return it in hex form
-      return ECDSA::Format::SignatureDerString.encode(signature).unpack("H*")[0]
+      ECDSA::Format::SignatureDerString.encode(signature).unpack("H*")[0]
     end
-    
+
     def self.from_passphrase(passphrase)
       # create a private+public key pair from a given passphrase
       # think of this as your brain wallet. be very sure to use a sufficiently long passphrase
@@ -214,26 +237,67 @@ module BlockIo
       
       hashed_key = Helper.sha256([passphrase].pack("H*")) # must pass bytes to sha256
 
-      return Key.new(hashed_key)
+      Key.new(hashed_key)
     end
+    self.singleton_class.send(:alias_method, :fromPassphrase, :from_passphrase)
+
+    def to_address(network)
+      # converts the current key into an address for the given network
+      
+      raise Exception.new('Must specify a valid network.') if network.nil? or !@address_versions.key?(network)
+
+      address_sha256 = Helper.sha256([public_key].pack("H*"))
+      address_ripemd160 = Digest::RMD160.hexdigest([address_sha256].pack("H*"))
+      address = '' << @address_versions[network] << address_ripemd160
+
+      # calculate the checksum
+      checksum = Helper.sha256([Helper.sha256([address].pack("H*"))].pack("H*"))[0,8]
+      address << checksum
+
+      Helper.encode_base58(address)
+    end
+    alias_method :address, :to_address
+    alias_method :toAddress, :to_address
+
+    def to_wif(network)
+      # convert the current key to its Wallet Import Format equivalent for the given network
+
+      raise Exception.new('Current network is unknown. Please either provide the network acronym as an argument, or initialize the library with your Block.io API Key.') if network.nil? or !@privkey_versions.key?(network.upcase)
+      
+      curKey = '' << @privkey_versions[network.upcase] << @private_key.to_s(16) 
+      curKey << '01' if @compressed
+
+      # append the first 8 bytes of the checksum
+      checksum = Helper.sha256([Helper.sha256([curKey].pack("H*"))].pack("H*"))      
+      curKey << checksum[0,8]
+
+      Helper.encode_base58(curKey)
+    end
+    alias_method :toWIF, :to_wif
+    alias_method :toWif, :to_wif
 
     def self.from_wif(wif)
       # returns a new key extracted from the Wallet Import Format provided
-      # TODO check against checksum
 
       hexkey = Helper.decode_base58(wif)
+
+      given_checksum = hexkey.reverse[0,8].reverse
+      our_checksum = Helper.sha256([Helper.sha256([hexkey[0,hexkey.size-8]].pack("H*"))].pack("H*"))[0,8]
+
+      raise Exception.new('Invalid Private Key provided. Must be in Wallet Important Format.') unless hexkey.length >= 74 and given_checksum == our_checksum
+
       actual_key = hexkey[2...66]
 
       compressed = hexkey[2..hexkey.length].length-8 > 64 and hexkey[2..hexkey.length][64...66] == '01'
 
-      return Key.new(actual_key, compressed)
-
+      Key.new(actual_key, compressed)
     end
-    
+    self.singleton_class.send(:alias_method, :fromWIF, :from_wif)
+    self.singleton_class.send(:alias_method, :fromWif, :from_wif)
+
     def isPositive(i)
       sig = "!+-"[i <=> 0]
-      
-      return sig.eql?("+")
+      sig.eql?("+")
     end
     
     def deterministicGenerateK(data, privkey, group = ECDSA::Group::Secp256k1)
@@ -281,7 +345,7 @@ module BlockIo
         tNum = v.pack("C*").unpack("H*")[0].to_i(16)
       end
       
-      return tNum
+      tNum
     end
 
   end
@@ -333,9 +397,7 @@ module BlockIo
     
     def self.sha256(value)
       # returns the hex of the hash of the given value
-      hash = Digest::SHA2.new(256)
-      hash << value
-      hash.hexdigest # return hex
+      Digest::SHA256.hexdigest(value)
     end
     
     def self.pinToAesKey(secret_pin, iterations = 2048)
