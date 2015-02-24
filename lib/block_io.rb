@@ -1,6 +1,7 @@
 require 'block_io/version'
 require 'httpclient'
-require 'json'
+require 'oj'
+require 'oj_mimic_json'
 require 'connection_pool'
 require 'ecdsa'
 require 'openssl'
@@ -24,7 +25,7 @@ module BlockIo
     @pin = args[:pin]
     @encryptionKey = Helper.pinToAesKey(@pin) if !@pin.nil?
 
-    @conn_pool = ConnectionPool.new(size: 5, timeout: 300) { HTTPClient.new }
+    @conn_pool = ConnectionPool.new(size: 1, timeout: 300) { HTTPClient.new }
     
     @version = args[:version] || 2 # default version is 2
     
@@ -56,7 +57,7 @@ module BlockIo
 
     params = get_params(args)
 
-    params += "&pin=#{@pin}" if @version == 1 # Block.io handles the Secret PIN in the legacy API (v1)
+    params << "&pin=" << @pin if @version == 1 # Block.io handles the Secret PIN in the legacy API (v1)
 
     response = self.api_call([method_name, params])
     
@@ -74,20 +75,9 @@ module BlockIo
       # let's sign all the inputs we can
       inputs = response['data']['inputs']
 
-      inputs.each do |input|
-        # iterate over all signers
-        
-        input['signers'].each do |signer|
-          # if our public key matches this signer's public key, sign the data
-
-          signer['signed_data'] = key.sign(input['data_to_sign']) if signer['signer_public_key'] == key.public_key
-
-        end
-        
-      end
+      Helper.signData(inputs, [key])
 
       # the response object is now signed, let's stringify it and finalize this withdrawal
-
       response = self.api_call(['sign_and_finalize_withdrawal',{:signature_data => response['data'].to_json}])
 
       # if we provided all the required signatures, this transaction went through
@@ -118,21 +108,9 @@ module BlockIo
 
       # let's sign all the inputs we can
       inputs = response['data']['inputs']
-
-      inputs.each do |input|
-        # iterate over all signers
-        
-        input['signers'].each do |signer|
-          # if our public key matches this signer's public key, sign the data
-
-          signer['signed_data'] = key.sign(input['data_to_sign']) if signer['signer_public_key'] == key.public_key
-
-        end
-        
-      end
+      Helper.signData(inputs, [key])
 
       # the response object is now signed, let's stringify it and finalize this withdrawal
-
       response = self.api_call(['sign_and_finalize_sweep',{:signature_data => response['data'].to_json}])
 
       # if we provided all the required signatures, this transaction went through
@@ -310,6 +288,39 @@ module BlockIo
   
   module Helper
     
+    def self.signData(inputs, keys)
+      # sign the given data with the given keys
+      # TODO loop is O(n^3), make it better
+
+      raise Exception.new('Keys object must be an array of keys, without at least one key inside it.') unless keys.is_a?(Array) and keys.size >= 1
+
+      i = 0
+      while i < inputs.size do
+        # iterate over all signers
+        input = inputs[i]
+
+        j = 0
+        while j < input['signers'].size do
+          # if our public key matches this signer's public key, sign the data
+          signer = inputs[i]['signers'][j]
+          
+          k = 0
+          while k < keys.size do
+            # sign for each key provided, if we can
+            key = keys[k]
+            signer['signed_data'] = key.sign(input['data_to_sign']) if signer['signer_public_key'] == key.public_key
+            k = k + 1
+          end
+
+          j = j + 1
+        end
+
+        i = i + 1
+      end
+
+      inputs
+    end
+
     def self.extractKey(encrypted_data, b64_enc_key)
       # passphrase is in plain text
       # encrypted_data is in base64, as it was stored on Block.io

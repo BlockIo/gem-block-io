@@ -22,7 +22,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 0"
   spec.add_runtime_dependency "ecdsa", "~> 1.2", '>= 1.2.0'
   spec.add_runtime_dependency "httpclient", "~> 2.4", '>= 2.4.0'
-  spec.add_runtime_dependency "json", "~> 1.8", '>= 1.8.1'
+  spec.add_runtime_dependency "oj"
+  spec.add_runtime_dependency "oj_mimic_json"
   spec.add_runtime_dependency "connection_pool", "~> 2.0", '>= 2.0.0'
   spec.add_runtime_dependency "pbkdf2-ruby", '~> 0.2', '>= 0.2.1'
 end
