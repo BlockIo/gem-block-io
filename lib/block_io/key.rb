@@ -57,7 +57,7 @@ module BlockIo
       raise Exception.new('Must provide passphrase at least 8 characters long.') if passphrase.nil? or passphrase.length < 8
       
       # convert to hex if it isn't
-      passphrase = passphrase.unpack("H*")[0] unless passphrase == /^[[:xdigit:]]+$/
+      passphrase = passphrase.unpack("H*")[0] unless Helper.hex?(passphrase)
 
       hashed_key = Helper.sha256([passphrase].pack("H*")) # must pass bytes to sha256
 

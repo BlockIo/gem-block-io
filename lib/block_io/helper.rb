@@ -4,6 +4,11 @@ module BlockIo
 
   class Helper
 
+    def self.hex?(s)
+      # is the given string a hexadecimal string?
+      !s[/\H/]
+    end
+
     def self.signData(inputs, keys)
       # sign the given data with the given keys
       # TODO loop is O(n^3), make it better
