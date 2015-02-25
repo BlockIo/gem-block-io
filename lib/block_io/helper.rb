@@ -42,9 +42,7 @@ module BlockIo
       # encrypted_data is in base64, as it was stored on Block.io
       # returns the private key extracted from the given encrypted data
       
-      decrypted = self.decrypt(encrypted_data, b64_enc_key)
-      
-      return Key.from_passphrase(decrypted)
+      Key.fromPassphrase(self.decrypt(encrypted_data, b64_enc_key))      
     end
     
     def self.sha256(value)
@@ -52,16 +50,15 @@ module BlockIo
       Digest::SHA256.hexdigest(value)
     end
     
-    def self.pinToAesKey(secret_pin, iterations = 2048)
+    def self.pinToAesKey(secret_pin, iterations = 2048, salt = "")
       # converts the pincode string to PBKDF2
       # returns a base64 version of PBKDF2 pincode
-      salt = ""
 
       # pbkdf2-ruby gem uses SHA256 as the default hash function
       aes_key_bin = PBKDF2.new(:password => secret_pin, :salt => salt, :iterations => iterations/2, :key_length => 128/8).value
       aes_key_bin = PBKDF2.new(:password => aes_key_bin.unpack("H*")[0], :salt => salt, :iterations => iterations/2, :key_length => 256/8).value
 
-      return Base64.strict_encode64(aes_key_bin) # the base64 encryption key
+      Base64.strict_encode64(aes_key_bin) # the base64 encryption key
     end
     
     # Decrypts a block of data (encrypted_data) given an encryption key
@@ -80,7 +77,7 @@ module BlockIo
         raise Exception.new('Invalid Secret PIN provided.')
       end
 
-      return response
+      response
     end
     
     # Encrypts a block of data given an encryption key
@@ -126,6 +123,53 @@ module BlockIo
       s = ("00"*leading_zero_bytes) + s  if leading_zero_bytes > 0
       s
     end
+
+    private
+  
+    def self.api_call(endpoint)
+      # common method for making the API calls to Block.io
+
+      body = nil
+
+      Vars.conn_pool.with do |hc|
+        # prevent initiation of HTTPClients every time we make this call, use a connection_pool
+
+        hc.ssl_config.ssl_version = :TLSv1
+        cur_url = Vars.base_url.sub('API_CALL', endpoint[0]).sub('VERSION', 'v' << Vars.version.to_s) << Vars.api_key
+
+        response = hc.post(cur_url, endpoint[1])
+
+        begin
+          body = Oj.load(response.body, mode: :strict)
+          
+          raise Exception.new(body['data']['error_message']) if !body['status'].eql?('success')
+        rescue Exception => e
+          
+          if body.is_a?(Hash) and body.key?('data') and body['data'].key?('error_message') then
+            raise Exception.new("Request Failed: " << e.to_s)
+          else
+            raise Exception.new("Unknown error occurred. Please report this: #{e}")
+          end
+
+        end
+      end
+    
+      body
+    end
+
+    def self.get_params(args = {})
+      # construct the parameter string
+      params = ""
+      args = {} if args.nil?
+      
+      args.each_key do |k|
+        params << '&' if params.size > 0
+        params << k.to_s << '=' << args[k].to_s
+      end
+      
+      params
+    end
+    
   end
 
 end

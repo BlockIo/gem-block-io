@@ -16,31 +16,49 @@ require_relative 'block_io/dtrust'
 
 module BlockIo
 
-  @api_key = nil
-  @base_url = "https://block.io/api/VERSION/API_CALL/?api_key="
-  @pin = nil
-  @encryptionKey = nil
-  @conn_pool = nil
-  @version = nil
+  class Vars
+    # holds the variables we use
+    class << self
+      attr_accessor :api_key, :base_url, :pin, :encryption_key, :conn_pool, :version, :privkey_versions, :address_versions, :network
+    end
+
+  end
 
   def self.set_options(args = {})
     # initialize BlockIo
-    @api_key = args[:api_key]
-    @pin = args[:pin]
-    @encryptionKey = Helper.pinToAesKey(@pin) if !@pin.nil?
 
-    @conn_pool = ConnectionPool.new(size: 1, timeout: 60) { HTTPClient.new }
-    
-    @version = args[:version] || 2 # default version is 2
-    
-    @network = nil
+    Vars.api_key = args[:api_key]
+    Vars.pin = args[:pin]
+    Vars.encryption_key = Helper.pinToAesKey(Vars.pin) unless Vars.pin.nil?
+    Vars.conn_pool = ConnectionPool.new(size: 1, timeout: 60) { HTTPClient.new }    
+    Vars.version = args[:version] || 2 # default version is 2
+    Vars.base_url = "https://block.io/api/VERSION/API_CALL/?api_key="
 
-    self.api_call(['get_balance',""])
+    Vars.privkey_versions = {
+      'BTC' => '80',
+      'BTCTEST' => 'ef',
+      'DOGE' => '9e',
+      'DOGETEST' => 'f1',
+      'LTC' => 'b0',
+      'LTCTEST' => 'ef'
+    }
+
+    Vars.address_versions = {
+      'BTC' => '00',
+      'BTCTEST' => '6f',
+      'DOGE' => '1e',
+      'DOGETEST' => '71',
+      'LTC' => '30',
+      'LTCTEST' => '6f'
+    }
+
+    response = Helper.api_call(['get_balance',""])
+    Vars.network = response['data']['network'] if response['status'].eql?('success')
+    
+    response
   end
 
   def self.method_missing(m, *args, &block)      
-
-    method_name = m.to_s
 
     if ['withdraw', 'withdraw_from_address', 'withdraw_from_addresses', 'withdraw_from_user', 'withdraw_from_users', 'withdraw_from_label', 'withdraw_from_labels'].include?(m.to_s) then
       # need to withdraw from an address
@@ -50,8 +68,7 @@ module BlockIo
       # need to sweep from an address
       self.sweep(args.first, m.to_s)
     else
-      params = get_params(args.first)
-      self.api_call([method_name, params])
+      Helper.api_call([m.to_s, Helper.get_params(args.first)])
     end
     
   end 
@@ -59,13 +76,13 @@ module BlockIo
   def self.withdraw(args = {}, method_name = 'withdraw')
     # validate arguments for withdrawal of funds TODO
 
-    raise Exception.new("PIN not set. Use BlockIo.set_options(:api_key=>'API KEY',:pin=>'SECRET PIN',:version=>'API VERSION')") if @pin.nil?
+    raise Exception.new("PIN not set. Use BlockIo.set_options(:api_key=>'API KEY',:pin=>'SECRET PIN',:version=>'API VERSION')") if Vars.pin.nil?
 
-    params = get_params(args)
+    params = Helper.get_params(args)
 
-    params << "&pin=" << @pin if @version == 1 # Block.io handles the Secret PIN in the legacy API (v1)
+    params << "&pin=" << Vars.pin if Vars.version == 1 # Block.io handles the Secret PIN in the legacy API (v1)
 
-    response = self.api_call([method_name, params])
+    response = Helper.api_call([method_name, params])
     
     if response['data'].has_key?('reference_id') then
       # Block.io's asking us to provide some client-side signatures, let's get to it
@@ -74,7 +91,7 @@ module BlockIo
       encrypted_passphrase = response['data']['encrypted_passphrase']['passphrase']
 
       # let's get our private key
-      key = Helper.extractKey(encrypted_passphrase, @encryptionKey)
+      key = Helper.extractKey(encrypted_passphrase, Vars.encryption_key)
 
       raise Exception.new('Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.') if key.public_key != response['data']['encrypted_passphrase']['signer_public_key']
 
@@ -84,7 +101,7 @@ module BlockIo
       Helper.signData(inputs, [key])
 
       # the response object is now signed, let's stringify it and finalize this withdrawal
-      response = self.api_call(['sign_and_finalize_withdrawal',{:signature_data => response['data'].to_json}])
+      response = Helper.api_call(['sign_and_finalize_withdrawal',{:signature_data => response['data'].to_json}])
 
       # if we provided all the required signatures, this transaction went through
       # otherwise Block.io responded with data asking for more signatures
@@ -107,7 +124,7 @@ module BlockIo
 
     params = get_params(args)
 
-    response = self.api_call([method_name, params])
+    response = Helper.api_call([method_name, params])
     
     if response['data'].has_key?('reference_id') then
       # Block.io's asking us to provide some client-side signatures, let's get to it
@@ -117,7 +134,7 @@ module BlockIo
       Helper.signData(inputs, [key])
 
       # the response object is now signed, let's stringify it and finalize this withdrawal
-      response = self.api_call(['sign_and_finalize_sweep',{:signature_data => response['data'].to_json}])
+      response = Helper.api_call(['sign_and_finalize_sweep',{:signature_data => response['data'].to_json}])
 
       # if we provided all the required signatures, this transaction went through
       # otherwise Block.io responded with data asking for more signatures
@@ -126,46 +143,6 @@ module BlockIo
 
     return response
 
-  end
-
-
-  private
-  
-  def self.api_call(endpoint)
-
-    body = nil
-
-    @conn_pool.with do |hc|
-      # prevent initiation of HTTPClients every time we make this call, use a connection_pool
-
-      hc.ssl_config.ssl_version = :TLSv1
-      response = hc.post("#{@base_url.gsub('API_CALL',endpoint[0]).gsub('VERSION', 'v'+@version.to_s) + @api_key}", endpoint[1])
-      
-      begin
-        body = JSON.parse(response.body)
-        raise Exception.new(body['data']['error_message']) if !body['status'].eql?('success')
-        @network = body['data']['network'] if body['data'].key?('network') # set the current network
-      rescue
-        raise Exception.new('Unknown error occurred. Please report this.')
-      end
-    end
-    
-    body
-  end
-
-  private
-
-  def self.get_params(args = {})
-    # construct the parameter string
-    params = ""
-    args = {} if args.nil?
-    
-    args.each do |k,v|
-      params += '&' if params.length > 0
-      params += "#{k.to_s}=#{v.to_s}"
-    end
-
-    return params
   end
 
 end

@@ -12,23 +12,6 @@ module BlockIo
       @public_key = @group.generator.multiply_by_scalar(@private_key)
       @compressed = compressed
 
-      @privkey_versions = {
-        'BTC' => '80',
-        'BTCTEST' => 'ef',
-        'DOGE' => '9e',
-        'DOGETEST' => 'f1',
-        'LTC' => 'b0',
-        'LTCTEST' => 'ef'
-      }
-
-      @address_versions = {
-        'BTC' => '00',
-        'BTCTEST' => '6f',
-        'DOGE' => '1e',
-        'DOGETEST' => '71',
-        'LTC' => '30',
-        'LTCTEST' => '6f'
-      }
     end 
     
     def private_key
@@ -73,20 +56,23 @@ module BlockIo
       
       raise Exception.new('Must provide passphrase at least 8 characters long.') if passphrase.nil? or passphrase.length < 8
       
+      # convert to hex if it isn't
+      passphrase = passphrase.unpack("H*")[0] unless passphrase == /^[[:xdigit:]]+$/
+
       hashed_key = Helper.sha256([passphrase].pack("H*")) # must pass bytes to sha256
 
       Key.new(hashed_key)
     end
     self.singleton_class.send(:alias_method, :fromPassphrase, :from_passphrase)
 
-    def to_address(network)
+    def to_address(network = Vars.network)
       # converts the current key into an address for the given network
       
-      raise Exception.new('Must specify a valid network.') if network.nil? or !@address_versions.key?(network)
+      raise Exception.new('Must specify a valid network.') if network.nil? or !Vars.address_versions.key?(network)
 
       address_sha256 = Helper.sha256([public_key].pack("H*"))
       address_ripemd160 = Digest::RMD160.hexdigest([address_sha256].pack("H*"))
-      address = '' << @address_versions[network] << address_ripemd160
+      address = '' << Vars.address_versions[network] << address_ripemd160
 
       # calculate the checksum
       checksum = Helper.sha256([Helper.sha256([address].pack("H*"))].pack("H*"))[0,8]
@@ -97,12 +83,12 @@ module BlockIo
     alias_method :address, :to_address
     alias_method :toAddress, :to_address
 
-    def to_wif(network)
+    def to_wif(network = Vars.network)
       # convert the current key to its Wallet Import Format equivalent for the given network
 
-      raise Exception.new('Current network is unknown. Please either provide the network acronym as an argument, or initialize the library with your Block.io API Key.') if network.nil? or !@privkey_versions.key?(network.upcase)
+      raise Exception.new('Current network is unknown. Please either provide the network acronym as an argument, or initialize the library with your Block.io API Key.') if network.nil? or !Var.privkey_versions.key?(network.upcase)
       
-      curKey = '' << @privkey_versions[network.upcase] << @private_key.to_s(16) 
+      curKey = '' << Var.privkey_versions[network.upcase] << @private_key.to_s(16) 
       curKey << '01' if @compressed
 
       # append the first 8 bytes of the checksum
