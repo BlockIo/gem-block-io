@@ -8,13 +8,18 @@ module BlockIo
 
       if ['withdraw', 'withdraw_from_address', 'withdraw_from_addresses', 'withdraw_from_user', 'withdraw_from_users', 'withdraw_from_label', 'withdraw_from_labels'].include?(m.to_s) then
         # need to withdraw from an address
+
         self.withdraw(args.first, m.to_s)
         
       elsif ['sweep_from_address'].include?(m.to_s) then
         # need to sweep from an address
+
         self.sweep(args.first, m.to_s)
+
       else
+
         Helper.api_call([m.to_s, Helper.get_params(args.first)])
+
       end
       
     end 
@@ -38,7 +43,7 @@ module BlockIo
         # let's get our private key
         key = Helper.extractKey(encrypted_passphrase, Vars.encryption_key)
 
-        raise Exception.new('Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.') if key.public_key != response['data']['encrypted_passphrase']['signer_public_key']
+        raise Exception.new('Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.') unless key.public_key == response['data']['encrypted_passphrase']['signer_public_key']
         
         # let's sign all the inputs we can
         inputs = response['data']['inputs']
