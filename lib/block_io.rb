@@ -84,7 +84,7 @@ module BlockIo
 
     response = Helper.api_call([method_name, params])
     
-    if response['data'].has_key?('reference_id') then
+    if response['data'].key?('reference_id') then
       # Block.io's asking us to provide some client-side signatures, let's get to it
 
       # extract the passphrase
@@ -115,7 +115,7 @@ module BlockIo
   def self.sweep(args = {}, method_name = 'sweep_from_address')
     # sweep coins from a given address + key
 
-    raise Exception.new("No private_key provided.") unless args.has_key?(:private_key)
+    raise Exception.new("No private_key provided.") unless args.key?(:private_key)
 
     key = Key.from_wif(args[:private_key])
 
@@ -126,7 +126,7 @@ module BlockIo
 
     response = Helper.api_call([method_name, params])
     
-    if response['data'].has_key?('reference_id') then
+    if response['data'].key?('reference_id') then
       # Block.io's asking us to provide some client-side signatures, let's get to it
 
       # let's sign all the inputs we can
