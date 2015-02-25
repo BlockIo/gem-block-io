@@ -25,7 +25,7 @@ module BlockIo
     @pin = args[:pin]
     @encryptionKey = Helper.pinToAesKey(@pin) if !@pin.nil?
 
-    @conn_pool = ConnectionPool.new(size: 1, timeout: 300) { HTTPClient.new }
+    @conn_pool = ConnectionPool.new(size: 1, timeout: 60) { HTTPClient.new }
     
     @version = args[:version] || 2 # default version is 2
     
