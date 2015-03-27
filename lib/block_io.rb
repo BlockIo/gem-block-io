@@ -1,4 +1,3 @@
-require 'httpclient'
 require 'oj'
 require 'oj_mimic_json'
 require 'connection_pool'
