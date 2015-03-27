@@ -88,9 +88,9 @@ module BlockIo
     def to_wif(network = Vars.network)
       # convert the current key to its Wallet Import Format equivalent for the given network
 
-      raise Exception.new('Current network is unknown. Please either provide the network acronym as an argument, or initialize the library with your Block.io API Key.') if network.nil? or !Var.privkey_versions.key?(network.upcase)
+      raise Exception.new('Current network is unknown. Please either provide the network acronym as an argument, or initialize the library with your Block.io API Key.') if network.nil? or !Vars.privkey_versions.key?(network.upcase)
       
-      curKey = '' << Var.privkey_versions[network.upcase] << @private_key.to_s(16) 
+      curKey = '' << Vars.privkey_versions[network.upcase] << @private_key.to_s(16) 
       curKey << '01' if @compressed
 
       # append the first 8 bytes of the checksum
