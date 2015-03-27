@@ -54,10 +54,91 @@ module BlockIo
       'LTCTEST' => '6f'
     }
 
-    response = Helper.api_call(['validate_api_key',""])
+    response = args[:only_verify] ? Helper.api_call(['validate_api_key',""]) : Helper.api_call(['get_balance',""])
     Vars.network = response['data']['network'] if response['status'].eql?('success')
     
     response
+  end
+
+  # legacy method forwarders
+  def self.get_new_address(args = {})
+    BlockIo::Basic.get_new_address(args)
+  end
+
+  def self.withdraw(args = {})
+    BlockIo::Basic.withdraw(args)
+  end
+
+  def self.withdraw_from_addresses(args = {})
+    BlockIo::Basic.withraw_from_addresses(args)
+  end
+
+  def self.withdraw_from_address(args = {})
+    BlockIo::Basic.withdraw_from_address(args)
+  end
+
+  def self.withdraw_from_labels(args = {})
+    BlockIo::Basic.withdraw_from_labels(args)
+  end
+
+  def self.withdraw_from_label(args = {})
+    BlockIo::Basic.withdraw_from_label(args)
+  end
+
+  def self.withdraw_from_users(args = {})
+    BlockIo::Basic.withdraw_from_users(args)
+  end
+
+  def self.withdraw_from_user(args = {})
+    BlockIo::Basic.withdraw_from_user(args)
+  end
+
+  def self.get_address_balance(args = {})
+    BlockIo::Basic.get_address_balance(args)
+  end
+
+  def self.get_balance(args = {})
+    BlockIo::Basic.get_balance(args)
+  end
+
+  def self.get_address_by_label(args = {})
+    BlockIo::Basic.get_address_by_label(args)
+  end
+
+  def self.get_my_addresses(args = {})
+    BlockIo::Basic.get_my_addresses(args)
+  end
+
+  def self.get_network_fee_estimate(args = {})
+    BlockIo::Basic.get_network_fee_estimate(args)
+  end
+
+  def self.archive_address(args = {})
+    BlockIo::Basic.archive_address(args)
+  end
+
+  def self.unarchive_address(args = {})
+    BlockIo::Basic.unarchive_address(args)
+  end
+
+  def self.get_my_archived_addresses(args = {})
+    BlockIo::Basic.get_my_archived_addresses(args)
+  end
+
+  def self.get_current_price(args = {})
+    BlockIo::Basic.get_current_price(args)
+  end
+
+  def self.is_green_address(args = {})
+    BlockIo::Basic.is_green_address(args)
+  end
+
+  def self.is_green_transaction(args = {})
+    BlockIo::Basic.is_green_transaction(args)
+  end
+
+  def self.get_transactions(args = {})
+    BlockIo::Basic.get_transactions(args)
   end
 
 end
