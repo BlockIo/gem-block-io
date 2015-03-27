@@ -8,6 +8,7 @@ require 'digest'
 require 'pbkdf2'
 require 'securerandom'
 require 'base64'
+require 'faraday'
 
 require_relative 'block_io/version'
 require_relative 'block_io/helper'
@@ -21,7 +22,7 @@ module BlockIo
     # holds the variables we use
 
     class << self
-      attr_accessor :api_key, :base_url, :pin, :encryption_key, :conn_pool, :version, :privkey_versions, :address_versions, :network
+      attr_accessor :api_key, :base_path, :pin, :encryption_key, :conn_pool, :version, :privkey_versions, :address_versions, :network
     end
 
   end
@@ -32,9 +33,20 @@ module BlockIo
     Vars.api_key = args[:api_key]
     Vars.pin = args[:pin]
     Vars.encryption_key = Helper.pinToAesKey(Vars.pin) unless Vars.pin.nil?
-    Vars.conn_pool = ConnectionPool.new(size: 1, timeout: 60) { HTTPClient.new }    
+
+    Vars.conn_pool = ConnectionPool.new(size: 1, timeout: 60) {
+
+      Faraday.new(:url => 'https://block.io') do |faraday|
+        # TODO force TLSv1+
+        faraday.request  :url_encoded             # form-encode POST params
+#        faraday.response :logger                  # log requests to STDOUT
+        faraday.adapter  args[:http_adapter] || Faraday.default_adapter  # make requests with Net::HTTP
+      end
+
+    }
+
     Vars.version = args[:version] || 2 # default version is 2
-    Vars.base_url = "https://block.io/api/VERSION/API_CALL/?api_key="
+    Vars.base_path = "/api/VERSION/API_CALL/?api_key="
 
     Vars.privkey_versions = {
       'BTC' => '80',

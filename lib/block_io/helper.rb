@@ -136,13 +136,12 @@ module BlockIo
 
       body = nil
 
-      Vars.conn_pool.with do |hc|
-        # prevent initiation of HTTPClients every time we make this call, use a connection_pool
+      Vars.conn_pool.with do |conn|
+        # prevent initiation of HTTP clients every time we make this call, use a connection_pool
 
-        hc.ssl_config.ssl_version = :TLSv1
-        cur_url = Vars.base_url.sub('API_CALL', endpoint[0]).sub('VERSION', 'v' << Vars.version.to_s) << Vars.api_key
+        cur_url = Vars.base_path.sub('API_CALL', endpoint[0]).sub('VERSION', 'v' << Vars.version.to_s) << Vars.api_key
 
-        response = hc.post(cur_url, endpoint[1])
+        response = conn.post(cur_url, endpoint[1])
 
         begin
           body = Oj.load(response.body, mode: :strict)
