@@ -6,12 +6,12 @@
 
 require "block_io"
 
-BlockIo.set_options :api_key => 'YOUR API KEY', :pin => 'PIN NOT NEEDED', :version => 2
+BlockIo.set_options :api_key => ENV['API_KEY'] || 'YOUR API KEY', :pin => 'PIN NOT NEEDED', :version => 2
 
-to_address = 'SWEEP COINS TO THIS ADDRESS'
+to_address = ENV['TO_ADDRESS'] || 'SWEEP COINS TO THIS ADDRESS'
 
-from_address = 'SWEEP COINS FROM THIS ADDRESS'
-private_key = 'PRIVATE KEY FOR FROM_ADDRESS'
+from_address = ENV['FROM_ADDRESS'] || 'SWEEP COINS FROM THIS ADDRESS'
+private_key = ENV['PRIVATE_KEY'] || 'PRIVATE KEY FOR FROM_ADDRESS'
 
 begin
   response = BlockIo.sweep_from_address(:to_address => to_address, :private_key => private_key, :from_address => from_address)

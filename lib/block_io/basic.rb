@@ -71,7 +71,7 @@ module BlockIo
       args[:public_key] = key.public_key # so Block.io can match things up
       args.delete(:private_key) # the key must never leave this machine
       
-      params = get_params(args)
+      params = Helper.get_params(args)
       
       response = Helper.api_call([method_name, params])
       
