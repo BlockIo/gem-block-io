@@ -128,7 +128,20 @@ module BlockIo
       s = ("00"*leading_zero_bytes) + s  if leading_zero_bytes > 0
       s
     end
-
+    
+    # checksum is a 4 bytes sha256-sha256 hexdigest.
+    def self.checksum(hex)
+      b = [hex].pack("H*") # unpack hex
+      Digest::SHA256.hexdigest( Digest::SHA256.digest(b) )[0...8]
+    end
+    
+    # verify base58 checksum for given +base58+ data.
+    def self.base58_checksum?(base58)
+      hex = Helper.decode_base58(base58) rescue nil
+      return false unless hex
+      Helper.checksum( hex[0...42] ) == hex[-8..-1]
+    end
+    
     private
   
     def self.api_call(endpoint)

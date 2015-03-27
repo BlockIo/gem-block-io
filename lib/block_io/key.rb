@@ -74,7 +74,7 @@ module BlockIo
 
       address_sha256 = Helper.sha256([public_key].pack("H*"))
       address_ripemd160 = Digest::RMD160.hexdigest([address_sha256].pack("H*"))
-      address = '' << Vars.address_versions[network] << address_ripemd160
+      address = '' << Vars.address_versions[network][:pk] << address_ripemd160
 
       # calculate the checksum
       checksum = Helper.sha256([Helper.sha256([address].pack("H*"))].pack("H*"))[0,8]
@@ -84,6 +84,18 @@ module BlockIo
     end
     alias_method :address, :to_address
     alias_method :toAddress, :to_address
+
+    def self.valid_address?(address, network = Vars.network)
+      # returns false if the address is invalid for the given network
+      
+      raise Exception.new('Must specify a valid network.') if network.nil? or !Vars.address_versions.key?(network)
+
+      hex = Helper.decode_base58(address) rescue nil
+      return false unless hex && hex.bytesize == 50
+      return false unless [Vars.address_versions[network][:pk], Vars.address_versions[network][:p2sh]].include?(hex[0...2])
+      Helper.base58_checksum?(address)
+
+    end
 
     def to_wif(network = Vars.network)
       # convert the current key to its Wallet Import Format equivalent for the given network

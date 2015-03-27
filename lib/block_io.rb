@@ -57,12 +57,12 @@ module BlockIo
     }
 
     Vars.address_versions = {
-      'BTC' => '00',
-      'BTCTEST' => '6f',
-      'DOGE' => '1e',
-      'DOGETEST' => '71',
-      'LTC' => '30',
-      'LTCTEST' => '6f'
+      'BTC' =>  {:pk => '00', :p2sh => '05'},
+      'BTCTEST' => {:pk => '6f', :p2sh => 'c4'},
+      'DOGE' => {:pk => '1e', :p2sh => '16'},
+      'DOGETEST' => {:pk => '71', :p2sh => 'c4'},
+      'LTC' => {:pk => '30', :p2sh => '05'},
+      'LTCTEST' => {:pk => '6f', :p2sh => 'c4'}
     }
 
     response = args[:only_verify] ? Helper.api_call(['validate_api_key',""]) : Helper.api_call(['get_balance',""])
