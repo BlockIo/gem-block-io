@@ -33,6 +33,8 @@ module BlockIo
     def sign(data)
       # signed the given hexadecimal string
 
+#      puts "SIGNING WITH PUBKEY: " << public_key
+
       nonce = deterministicGenerateK([data].pack("H*"), @private_key) # RFC6979
       
       signature = ECDSA.sign(@group, @private_key, data.to_i(16), nonce)

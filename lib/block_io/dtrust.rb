@@ -33,6 +33,18 @@ module BlockIo
 
     end
 
+    def self.withdraw
+      # withdraws from the given labels/addresses
+
+      common_checks
+
+      
+    end
+    self.singleton_class.send(:alias_method, :withdraw_from_addresses, :withdraw)
+    self.singleton_class.send(:alias_method, :withdraw_from_address, :withdraw)
+    self.singleton_class.send(:alias_method, :withdraw_from_labels, :withdraw)
+    self.singleton_class.send(:alias_method, :withdraw_from_label, :withdraw)
+
   end
 
 end

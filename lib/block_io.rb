@@ -54,7 +54,7 @@ module BlockIo
       'LTCTEST' => '6f'
     }
 
-    response = Helper.api_call(['get_balance',""])
+    response = Helper.api_call(['validate_api_key',""])
     Vars.network = response['data']['network'] if response['status'].eql?('success')
     
     response
