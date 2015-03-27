@@ -152,5 +152,9 @@ module BlockIo
     BlockIo::Basic.get_transactions(args)
   end
 
+  def self.sweep_from_address(args = {})
+    BlockIo::Basic.sweep_from_address(args)
+  end
+
 end
 
