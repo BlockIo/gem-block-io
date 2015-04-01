@@ -1,5 +1,7 @@
 # Helper methods for the BlockIo library
 
+require 'uri'
+
 module BlockIo
 
   class Helper
@@ -149,6 +151,8 @@ module BlockIo
 
       body = nil
 
+      raise "Block.io gem not initialized" if Vars.conn_pool.nil?
+
       Vars.conn_pool.with do |conn|
         # prevent initiation of HTTP clients every time we make this call, use a connection_pool
 
@@ -181,7 +185,8 @@ module BlockIo
       
       args.each_key do |k|
         params << '&' if params.size > 0
-        params << k.to_s << '=' << args[k].to_s
+        params << k.to_s << '=' << args[k].to_s if k.to_s != 'url'
+        params << k.to_s << '=' << URI.encode(args[k].to_s) if k.to_s == 'url'
       end
       
       params

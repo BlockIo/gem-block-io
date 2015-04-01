@@ -156,5 +156,29 @@ module BlockIo
     BlockIo::Basic.sweep_from_address(args)
   end
 
+  def self.create_notification(args = {})
+    BlockIo::Basic.create_notification(args)
+  end
+
+  def self.enable_notification(args = {})
+    BlockIo::Basic.enable_notification(args)
+  end
+
+  def self.disable_notification(args = {})
+    BlockIo::Basic.disable_notification(args)
+  end
+
+  def self.get_notifications(args = {})
+    BlockIo::Basic.get_notifications(args)
+  end
+
+  def self.delete_notification(args = {})
+    BlockIo::Basic.delete_notification(args)
+  end
+
+  def self.get_recent_notification_events(args = {})
+    BlockIo::Basic.get_recent_notification_events(args)
+  end
+
 end
 
