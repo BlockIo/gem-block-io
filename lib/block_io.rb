@@ -10,6 +10,7 @@ require 'base64'
 require 'faraday'
 
 require_relative 'block_io/version'
+require_relative 'block_io/constants'
 require_relative 'block_io/helper'
 require_relative 'block_io/key'
 require_relative 'block_io/basic'
@@ -46,24 +47,6 @@ module BlockIo
 
     Vars.version = args[:version] || 2 # default version is 2
     Vars.base_path = "/api/VERSION/API_CALL/?api_key="
-
-    Vars.privkey_versions = {
-      'BTC' => '80',
-      'BTCTEST' => 'ef',
-      'DOGE' => '9e',
-      'DOGETEST' => 'f1',
-      'LTC' => 'b0',
-      'LTCTEST' => 'ef'
-    }
-
-    Vars.address_versions = {
-      'BTC' =>  {:pk => '00', :p2sh => '05'},
-      'BTCTEST' => {:pk => '6f', :p2sh => 'c4'},
-      'DOGE' => {:pk => '1e', :p2sh => '16'},
-      'DOGETEST' => {:pk => '71', :p2sh => 'c4'},
-      'LTC' => {:pk => '30', :p2sh => '05'},
-      'LTCTEST' => {:pk => '6f', :p2sh => 'c4'}
-    }
 
     response = args[:only_verify] ? Helper.api_call(['validate_api_key',""]) : Helper.api_call(['get_balance',""])
     Vars.network = response['data']['network'] if response['status'].eql?('success')
