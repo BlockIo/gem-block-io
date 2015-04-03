@@ -7,8 +7,11 @@ module BlockIo
     def initialize(privkey = nil, compressed = true)
       # the privkey must be in hex if at all provided
 
+      raise "Provided private key is too short. Please choose a secure exponent at least 32 characters long." if !privkey.nil? and privkey.size < 16
+      raise "Must use Hex format if providing a private key (exponent)." if !privkey.nil? and !(/^[a-fA-F0-9]+$/.match(privkey))
+
       @group = ECDSA::Group::Secp256k1
-      @private_key = privkey.to_i(16) || 1 + SecureRandom.random_number(group.order - 1)
+      @private_key = privkey.nil? ? (1 + SecureRandom.random_number(@group.order - 1)) : privkey.to_i(16)
       @public_key = @group.generator.multiply_by_scalar(@private_key)
       @compressed = compressed
 
@@ -100,9 +103,11 @@ module BlockIo
     def to_wif(network = Vars.network)
       # convert the current key to its Wallet Import Format equivalent for the given network
 
-      raise Exception.new('Current network is unknown. Please either provide the network acronym as an argument, or initialize the library with your Block.io API Key.') if network.nil? or Constants::PRIVKEY_VERSIONS.key?(network.upcase)
+      network.upcase!
+
+      raise Exception.new('Current network is unknown. Please either provide the network acronym as an argument, or initialize the library with your Block.io API Key.') if network.nil? or !Constants::PRIVKEY_VERSIONS.key?(network)
       
-      curKey = '' << Constants::PRIVKEY_VERSIONS[network.upcase] << @private_key.to_s(16) 
+      curKey = '' << Constants::PRIVKEY_VERSIONS[network] << @private_key.to_s(16) 
       curKey << '01' if @compressed
 
       # append the first 8 bytes of the checksum
