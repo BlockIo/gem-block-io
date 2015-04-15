@@ -19,7 +19,7 @@ module BlockIo
     
     def private_key
       # returns private key in hex form
-      @private_key.to_s(16)
+      @private_key.to_s(16).rjust(64, '0')
     end
     alias_method :privateKey, :private_key
     alias_method :privKey, :private_key
@@ -107,11 +107,12 @@ module BlockIo
 
       raise Exception.new('Current network is unknown. Please either provide the network acronym as an argument, or initialize the library with your Block.io API Key.') if network.nil? or !Constants::PRIVKEY_VERSIONS.key?(network)
       
-      curKey = '' << Constants::PRIVKEY_VERSIONS[network] << @private_key.to_s(16) 
+      curKey = '' << Constants::PRIVKEY_VERSIONS[network] << private_key
       curKey << '01' if @compressed
 
       # append the first 8 bytes of the checksum
       checksum = Helper.sha256([Helper.sha256([curKey].pack("H*"))].pack("H*"))      
+      
       curKey << checksum[0,8]
 
       Helper.encode_base58(curKey)
