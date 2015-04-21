@@ -87,6 +87,7 @@ module BlockIo
     end
     alias_method :address, :to_address
     alias_method :toAddress, :to_address
+    alias_method :getAddress, :to_address
 
     def self.valid_address?(address, network = Vars.network)
       # returns false if the address is invalid for the given network
