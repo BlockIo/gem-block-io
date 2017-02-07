@@ -106,7 +106,7 @@ module BlockIo
     @conn_pool.with do |hc|
       # prevent initiation of HTTPClients every time we make this call, use a connection_pool
 
-      hc.ssl_config.ssl_version = :TLSv1
+      hc.ssl_config.ssl_version = :TLSv1_2
       response = hc.post("#{@base_url.gsub('API_CALL',endpoint[0]).gsub('VERSION', 'v'+@version.to_s) + @api_key}", endpoint[1])
       
       begin
