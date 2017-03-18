@@ -10,7 +10,9 @@ module BlockIo
       'DOGE' => '9e',
       'DOGETEST' => 'f1',
       'LTC' => 'b0',
-      'LTCTEST' => 'ef'
+      'LTCTEST' => 'ef',
+      'DASH' => 'cc',
+      'DASHTEST' => 'ef'
     }
 
     ADDRESS_VERSIONS = {
@@ -19,7 +21,9 @@ module BlockIo
       'DOGE' => {:pk => '1e', :p2sh => '16'},
       'DOGETEST' => {:pk => '71', :p2sh => 'c4'},
       'LTC' => {:pk => '30', :p2sh => '05'},
-      'LTCTEST' => {:pk => '6f', :p2sh => 'c4'}
+      'LTCTEST' => {:pk => '6f', :p2sh => 'c4'},
+      'DASH' => {:pk => '4c', :p2sh => '10'},
+      'DASHTEST' => {:pk => '8c', :p2sh => '13'}
     }
 
   end
