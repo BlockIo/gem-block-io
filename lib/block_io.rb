@@ -48,7 +48,8 @@ module BlockIo
     Vars.version = args[:version] || 2 # default version is 2
     Vars.base_path = "/api/VERSION/API_CALL/?api_key="
 
-    response = args[:only_verify] ? Helper.api_call(['validate_api_key',""]) : Helper.api_call(['get_balance',""])
+    response = ((args[:verified] and !args[:network].nil?) ? ({'status' => 'success', 'data' => {'network' => args[:network]}}) : (args[:only_verify] ? Helper.api_call(['validate_api_key',""]) : Helper.api_call(['get_balance',""])))
+
     Vars.network = response['data']['network'] if response['status'].eql?('success')
     
     response
