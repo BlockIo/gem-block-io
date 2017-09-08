@@ -96,7 +96,7 @@ module BlockIo
 
       hex = Helper.decode_base58(address) rescue nil
       return false unless hex && hex.bytesize == 50
-      return false unless [Constants::ADDRESS_VERSIONS[network][:pk], Constants::ADDRESS_VERSIONS[network][:p2sh]].include?(hex[0...2])
+      return false unless [Constants::ADDRESS_VERSIONS[network][:pk], Constants::ADDRESS_VERSIONS[network][:p2sh], Constants::ADDRESS_VERSIONS[network][:p2sh_new]].compact.include?(hex[0...2])
       Helper.base58_checksum?(address)
 
     end
