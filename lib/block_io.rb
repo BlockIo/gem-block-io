@@ -1,7 +1,6 @@
 require 'block_io/version'
 require 'httpclient'
 require 'oj'
-require 'oj_mimic_json'
 require 'connection_pool'
 require 'ecdsa'
 require 'openssl'
@@ -25,7 +24,7 @@ module BlockIo
     @pin = args[:pin]
     @encryptionKey = Helper.pinToAesKey(@pin) if !@pin.nil?
 
-    @conn_pool = ConnectionPool.new(size: 1, timeout: 300) { HTTPClient.new }
+    @conn_pool = ConnectionPool.new(size: 1, timeout: 300) { h = HTTPClient.new; h.tcp_keepalive = true; h.ssl_config.ssl_version = :auto; h }
     
     @version = args[:version] || 2 # default version is 2
     
@@ -78,7 +77,7 @@ module BlockIo
       Helper.signData(inputs, [key])
 
       # the response object is now signed, let's stringify it and finalize this withdrawal
-      response = self.api_call(['sign_and_finalize_withdrawal',{:signature_data => response['data'].to_json}])
+      response = self.api_call(['sign_and_finalize_withdrawal',{:signature_data => Oj.dump(response['data'])}])
 
       # if we provided all the required signatures, this transaction went through
       # otherwise Block.io responded with data asking for more signatures
@@ -111,7 +110,7 @@ module BlockIo
       Helper.signData(inputs, [key])
 
       # the response object is now signed, let's stringify it and finalize this withdrawal
-      response = self.api_call(['sign_and_finalize_sweep',{:signature_data => response['data'].to_json}])
+      response = self.api_call(['sign_and_finalize_sweep',{:signature_data => Oj.dump(response['data'])}])
 
       # if we provided all the required signatures, this transaction went through
       # otherwise Block.io responded with data asking for more signatures
@@ -132,11 +131,10 @@ module BlockIo
     @conn_pool.with do |hc|
       # prevent initiation of HTTPClients every time we make this call, use a connection_pool
 
-      hc.ssl_config.ssl_version = :TLSv1
       response = hc.post("#{@base_url.gsub('API_CALL',endpoint[0]).gsub('VERSION', 'v'+@version.to_s) + @api_key}", endpoint[1])
       
       begin
-        body = JSON.parse(response.body)
+        body = Oj.load(response.body)
         raise Exception.new(body['data']['error_message']) if !body['status'].eql?('success')
       rescue
         raise Exception.new('Unknown error occurred. Please report this.')
