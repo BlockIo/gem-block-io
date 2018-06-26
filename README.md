@@ -14,10 +14,11 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install block_io -v=1.0.6
+    $ gem install block_io -v=1.2.0
 
 ## Changelog
 
+*06/25/18*: Remove support for Ruby < 1.9.3 (OpenSSL::Cipher::Cipher). Remove connection_pool dependency.
 *01/21/15*: Added ability to sweep coins from one address to another.  
 *11/04/14*: Fix issue with nil parameters in an API call.  
 *11/03/14*: Reduce dependence on OpenSSL. PBKDF2 function is now Ruby-based. Should work well with Heroku's libraries.  

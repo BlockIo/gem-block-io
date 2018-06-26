@@ -1,7 +1,6 @@
 require 'block_io/version'
 require 'httpclient'
 require 'oj'
-require 'connection_pool'
 require 'ecdsa'
 require 'openssl'
 require 'digest'
@@ -12,9 +11,10 @@ require 'base64'
 module BlockIo
 
   @api_key = nil
-  @base_url = "https://block.io/api/VERSION/API_CALL/?api_key="
+  @base_url = nil
   @pin = nil
   @encryptionKey = nil
+  @client = nil
   @conn_pool = nil
   @version = nil
 
@@ -22,9 +22,15 @@ module BlockIo
     # initialize BlockIo
     @api_key = args[:api_key]
     @pin = args[:pin]
+    
     @encryptionKey = Helper.pinToAesKey(@pin) if !@pin.nil?
 
-    @conn_pool = ConnectionPool.new(size: 1, timeout: 300) { h = HTTPClient.new; h.tcp_keepalive = true; h.ssl_config.ssl_version = :auto; h }
+    hostname = args[:hostname] || "block.io"
+    @base_url = "https://" << hostname << "/api/VERSION/API_CALL/?api_key="
+    
+    @client = HTTPClient.new
+    @client.tcp_keepalive = true
+    @client.ssl_config.ssl_version = :auto
     
     @version = args[:version] || 2 # default version is 2
     
@@ -38,7 +44,6 @@ module BlockIo
     if ['withdraw', 'withdraw_from_address', 'withdraw_from_addresses', 'withdraw_from_user', 'withdraw_from_users', 'withdraw_from_label', 'withdraw_from_labels'].include?(m.to_s) then
       # need to withdraw from an address
       self.withdraw(args.first, m.to_s)
-
     elsif ['sweep_from_address'].include?(m.to_s) then
       # need to sweep from an address
       self.sweep(args.first, m.to_s)
@@ -128,17 +133,13 @@ module BlockIo
 
     body = nil
 
-    @conn_pool.with do |hc|
-      # prevent initiation of HTTPClients every time we make this call, use a connection_pool
-
-      response = hc.post("#{@base_url.gsub('API_CALL',endpoint[0]).gsub('VERSION', 'v'+@version.to_s) + @api_key}", endpoint[1])
+    response = @client.post("#{@base_url.gsub('API_CALL',endpoint[0]).gsub('VERSION', 'v'+@version.to_s) + @api_key}", endpoint[1])
       
-      begin
-        body = Oj.load(response.body)
-        raise Exception.new(body['data']['error_message']) if !body['status'].eql?('success')
-      rescue
-        raise Exception.new('Unknown error occurred. Please report this.')
-      end
+    begin
+      body = Oj.load(response.body)
+      raise Exception.new(body['data']['error_message']) if !body['status'].eql?('success')
+    rescue
+      raise Exception.new('Unknown error occurred. Please report this.')
     end
     
     body
