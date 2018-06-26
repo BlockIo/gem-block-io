@@ -355,7 +355,7 @@ module BlockIo
       response = nil
 
       begin
-        aes = OpenSSL::Cipher::Cipher.new(cipher_type)
+        aes = OpenSSL::Cipher.new(cipher_type)
         aes.decrypt
         aes.key = Base64.strict_decode64(b64_enc_key)
         aes.iv = iv if iv != nil
@@ -370,7 +370,7 @@ module BlockIo
     
     # Encrypts a block of data given an encryption key
     def self.encrypt(data, b64_enc_key, iv = nil, cipher_type = 'AES-256-ECB')
-      aes = OpenSSL::Cipher::Cipher.new(cipher_type)
+      aes = OpenSSL::Cipher.new(cipher_type)
       aes.encrypt
       aes.key = Base64.strict_decode64(b64_enc_key)
       aes.iv = iv if iv != nil
