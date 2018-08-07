@@ -6,7 +6,7 @@
 
 require "block_io"
 
-BlockIo.set_options :api_key => 'YOUR API KEY', :pin => 'PIN NOT NEEDED', :version => 2
+block_io = BlockIo::Client.new api_key: 'YOUR API KEY', pin: 'PIN NOT NEEDED'
 
 to_address = 'SWEEP COINS TO THIS ADDRESS'
 
@@ -14,8 +14,8 @@ from_address = 'SWEEP COINS FROM THIS ADDRESS'
 private_key = 'PRIVATE KEY FOR FROM_ADDRESS'
 
 begin
-  response = BlockIo.sweep_from_address(:to_address => to_address, :private_key => private_key, :from_address => from_address)
-  
+  response = block_io.sweep_from_address(:to_address => to_address, :private_key => private_key, :from_address => from_address)
+
   puts "Sweep Complete: #{response['data']['amount_sent']} #{response['data']['network']} swept from #{from_address} to #{to_address}."
   puts "Transaction ID: #{response['data']['txid']}"
   puts "Network Fee Incurred: #{response['data']['network_fee']} #{response['data']['network']}"
