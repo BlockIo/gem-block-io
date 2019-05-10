@@ -18,7 +18,7 @@ Or install it yourself as:
 
 ## Changelog
 
-*05/10/19*: Prevent inadvertent passing of PINs (user error).
+*05/10/19*: Prevent inadvertent passing of PINs (user error).  
 *06/25/18*: Remove support for Ruby < 1.9.3 (OpenSSL::Cipher::Cipher). Remove connection_pool dependency.  
 *01/21/15*: Added ability to sweep coins from one address to another.  
 *11/04/14*: Fix issue with nil parameters in an API call.  
