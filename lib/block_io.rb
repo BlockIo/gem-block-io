@@ -59,9 +59,11 @@ module BlockIo
 
     raise Exception.new("PIN not set. Use BlockIo.set_options(:api_key=>'API KEY',:pin=>'SECRET PIN',:version=>'API VERSION')") if @pin.nil?
 
-    params = get_params(args)
+    # make sure pins don't get passed inadvertently
+    args.delete(:pin)
+    args.delete('pin')
 
-    params << "&pin=" << @pin if @version == 1 # Block.io handles the Secret PIN in the legacy API (v1)
+    params = get_params(args)
 
     response = self.api_call([method_name, params])
     

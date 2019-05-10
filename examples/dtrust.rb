@@ -1,6 +1,7 @@
 # creates a new destination address, withdraws from the default label to it, gets sent transactions, and the current price
 
 require 'block_io'
+require 'json'
 
 # please use the Dogecoin Testnet API key here
 puts "*** Initialize BlockIo library: "
