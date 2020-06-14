@@ -17,7 +17,7 @@ environment:
     
 install:
   - SET PATH=C:\Ruby%ruby_version%\bin;%PATH%
-  - gem install bundler --no-document -v 2.1.6
+  - gem install bundler --no-document -v 2.1.4
   - bundle install --retry=3
 
 test_script:
