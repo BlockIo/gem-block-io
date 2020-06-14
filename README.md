@@ -1,5 +1,8 @@
 # BlockIo
 
+[![Linux/OSX Build Status](https://travis-ci.org/BlockIo/gem-block-io.svg?branch=master)](https://travis-ci.org/BlockIo/gem-block-io)
+[![Windows Build Status](https://ci.appveyor.com/api/projects/status/ofkrkp3w2fgeiicr?svg=true)](https://github.com/blockio/gem-block-io)
+
 This Ruby Gem is the official reference client for the Block.io payments API. To use this, you will need the Dogecoin, Bitcoin, or Litecoin API key(s) from <a href="https://block.io" target="_blank">Block.io</a>. Go ahead, sign up :)
 
 ## Installation
