@@ -7,22 +7,23 @@
 
 require 'block_io'
 
-puts BlockIo.set_options :api_key => ENV['API_KEY'], :pin => ENV['PIN'], :version => 2
+blockio = BlockIo::Client.new(:api_key => ENV['API_KEY'], :pin => ENV['PIN'], :version => 2)
+puts blockio.network
 
 begin
-  puts BlockIo.get_new_address(:label => 'testDest')
+  puts blockio.get_new_address(:label => 'testDest')
 rescue Exception => e
   # if this failed, we probably created testDest label before
   puts e.to_s
 end
 
-puts BlockIo.withdraw_from_labels(:from_labels => 'default', :to_label => 'testDest', :amount => '2.5')
+puts blockio.withdraw_from_labels(:from_labels => 'default', :to_label => 'testDest', :amount => '2.5')
 
-puts BlockIo.get_address_balance(:labels => 'default,testDest')
+puts blockio.get_address_balance(:labels => 'default,testDest')
 
-puts BlockIo.get_transactions(:type => 'sent') # API v2 only
+puts blockio.get_transactions(:type => 'sent')
 
-puts BlockIo.get_transactions(:type => 'received') # API v2 only
+puts blockio.get_transactions(:type => 'received')
 
-puts BlockIo.get_current_price(:base_price => 'BTC')
+puts blockio.get_current_price(:base_price => 'BTC')
 

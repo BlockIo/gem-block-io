@@ -8,19 +8,21 @@
 
 require 'block_io'
 require 'securerandom'
+require 'json'
 require 'bigdecimal'
 
 # please use the Dogecoin/Bitcoin Testnet API key here
-BlockIo.set_options :api_key => ENV['API_KEY'], :pin => ENV['PIN'], :version => 2
+blockio = BlockIo::Client.new(:api_key => ENV['API_KEY'], :pin => ENV['PIN'], :version => 2)
+puts blockio.network
 
 # create address A, and withdraw all coins to address A
 first_address_label = SecureRandom.hex(8) # the source address
 second_address_label = SecureRandom.hex(8) # the change address
 
 # let's fill up the first address with whatever coins exist in this account
-puts BlockIo.get_new_address(:label => first_address_label)
+puts JSON.pretty_generate(blockio.get_new_address(:label => first_address_label))
 
-available_balance = BigDecimal(BlockIo.get_balance()['data']['available_balance'])
+available_balance = BigDecimal(blockio.get_balance()['data']['available_balance'])
 network_fee = BigDecimal('0.0')
 
 puts "Available Balance: #{available_balance.truncate(8).to_s('F')}"
@@ -32,7 +34,7 @@ tries = 2 # retry twice at most
 begin
   options[:amounts] = (available_balance - network_fee).truncate(8).to_s("F")
   
-  response = BlockIo.get_network_fee_estimate(options)
+  response = blockio.get_network_fee_estimate(options)
   network_fee = BigDecimal(response['data']['estimated_network_fee'])
   
   puts "Final Network Fee: #{network_fee.truncate(8).to_s('F')}"
@@ -50,21 +52,21 @@ rescue Exception => e
 end
 
 # make the withdrawal
-puts BlockIo.withdraw(options)
+puts JSON.pretty_generate(blockio.withdraw(options))
 
 # all balance has been transferred to first_address_label
 
 # create the change address
-puts BlockIo.get_new_address(:label => second_address_label)
+puts JSON.pretty_generate(blockio.get_new_address(:label => second_address_label))
 
 destination_address = ENV['DESTINATION_ADDRESS']
 destination_amount = BigDecimal(ENV['DESTINATION_AMOUNT'])
 
 puts "Sending #{destination_amount} to #{destination_address}"
 
-available_balance = BigDecimal(BlockIo.get_balance(:labels => first_address_label)['data']['available_balance'])
+available_balance = BigDecimal(blockio.get_balance(:labels => first_address_label)['data']['available_balance'])
 
-second_address = BlockIo.get_address_by_label(:label => second_address_label)['data']['address']
+second_address = blockio.get_address_by_label(:label => second_address_label)['data']['address']
 
 options = {}
 
@@ -88,7 +90,7 @@ begin
     amounts = [destination_amount.truncate(8).to_s("F")]
   end
   
-  response = BlockIo.get_network_fee_estimate(:from_labels => first_address_label, :to_addresses => to_addresses.join(','), :amounts => amounts.join(','))
+  response = blockio.get_network_fee_estimate(:from_labels => first_address_label, :to_addresses => to_addresses.join(','), :amounts => amounts.join(','))
   network_fee = BigDecimal(response['data']['estimated_network_fee'])
   
   puts "Final Network Fee: #{network_fee.truncate(8).to_s('F')}"
@@ -108,10 +110,10 @@ end
 
 # make the withdrawal + send change to change address
 
-puts BlockIo.withdraw(:from_labels => first_address_label, :to_addresses => to_addresses.join(','), :amounts => amounts.join(','))
+puts JSON.pretty_generate(blockio.withdraw(:from_labels => first_address_label, :to_addresses => to_addresses.join(','), :amounts => amounts.join(',')))
 
 # archive the first address
 
-puts BlockIo.archive_address(:labels => first_address_label)
+puts JSON.pretty_generate(blockio.archive_address(:labels => first_address_label))
 
 

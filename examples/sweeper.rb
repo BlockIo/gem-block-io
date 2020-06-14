@@ -6,15 +6,16 @@
 
 require "block_io"
 
-BlockIo.set_options :api_key => 'YOUR API KEY', :pin => 'PIN NOT NEEDED', :version => 2
+blockio = BlockIo.new(:api_key => ENV['API_KEY'], :pin => "NOT NEEDED", :version => 2)
+puts blockio.network
 
-to_address = 'SWEEP COINS TO THIS ADDRESS'
+to_address = ENV['TO_ADDRESS'] # sweep coins into this address
 
-from_address = 'SWEEP COINS FROM THIS ADDRESS'
-private_key = 'PRIVATE KEY FOR FROM_ADDRESS'
+from_address = ENV['FROM_ADDRESS'] # sweep coins from this address
+private_key = ENV['PRIVATE_KEY'] # private key for from_address
 
 begin
-  response = BlockIo.sweep_from_address(:to_address => to_address, :private_key => private_key, :from_address => from_address)
+  response = blockio.sweep_from_address(:to_address => to_address, :private_key => private_key, :from_address => from_address)
   
   puts "Sweep Complete: #{response['data']['amount_sent']} #{response['data']['network']} swept from #{from_address} to #{to_address}."
   puts "Transaction ID: #{response['data']['txid']}"

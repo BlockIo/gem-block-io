@@ -1,0 +1,11 @@
+language: ruby
+rvm:
+- 2.4.0
+- 2.5.0
+- 2.6.0
+- 2.7.0
+bundler_args: --jobs=2
+script:
+- bundle exec rspec
+cache: bundler
+
