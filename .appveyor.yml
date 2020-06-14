@@ -1,0 +1,21 @@
+version: '{build}'
+
+skip_tags: true
+
+environment:
+  matrix:
+    - ruby_version: "23-x64"
+    - ruby_version: "24-x64"
+    - ruby_version: "25-x64"
+    - ruby_version: "26-x64"
+    - ruby_version: "27-x64"
+
+install:
+  - SET PATH=C:\Ruby%ruby_version%\bin;%PATH%
+  - gem install bundler --no-document -v 2.1.4
+  - bundle install --retry=3
+
+test_script:
+  - bundle exec rspec
+
+build: off
