@@ -3,6 +3,11 @@ os:
 - linux
 - osx
 - windows
+  language: bash
+  install:
+    - choco install mingw
+    - choco install msys2
+    - ridk.cmd exec pacman -S --noconfirm --needed base-devel mingw-w64-x86_64-toolchain
 rvm:
 - 2.3.0
 - 2.4.0
