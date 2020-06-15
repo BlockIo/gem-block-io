@@ -8,14 +8,11 @@
 require 'block_io'
 
 blockio = BlockIo::Client.new(:api_key => ENV['API_KEY'], :pin => ENV['PIN'], :version => 2)
+puts blockio.get_balance
 puts blockio.network
 
-begin
-  puts blockio.get_new_address(:label => 'testDest')
-rescue Exception => e
-  # if this failed, we probably created testDest label before
-  puts e.to_s
-end
+# create the address if it doesn't exist
+puts blockio.get_new_address(:label => 'testDest')
 
 puts blockio.withdraw_from_labels(:from_labels => 'default', :to_label => 'testDest', :amount => '2.5')
 

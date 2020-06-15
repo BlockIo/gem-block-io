@@ -7,6 +7,7 @@
 require "block_io"
 
 blockio = BlockIo.new(:api_key => ENV['API_KEY'], :pin => "NOT NEEDED", :version => 2)
+puts blockio.get_balance
 puts blockio.network
 
 to_address = ENV['TO_ADDRESS'] # sweep coins into this address
@@ -16,10 +17,13 @@ private_key = ENV['PRIVATE_KEY'] # private key for from_address
 
 begin
   response = blockio.sweep_from_address(:to_address => to_address, :private_key => private_key, :from_address => from_address)
-  
+
+  raise response["data"]["error_message"] unless response["status"].eql?("success")
+
   puts "Sweep Complete: #{response['data']['amount_sent']} #{response['data']['network']} swept from #{from_address} to #{to_address}."
   puts "Transaction ID: #{response['data']['txid']}"
   puts "Network Fee Incurred: #{response['data']['network_fee']} #{response['data']['network']}"
+  
 rescue Exception => e
   puts "Sweep failed: #{e}"
 end

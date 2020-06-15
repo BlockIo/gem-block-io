@@ -2,52 +2,38 @@ module BlockIo
 
   class Helper
 
-    def self.api_call(args)
-
-      response = HTTP.headers(:accept => "application/json", :user_agent => "gem:block_io:#{VERSION}").
-                   post("#{args[:base_url]}/#{args[:method_name]}", :json => args[:params].merge({:api_key => args[:api_key]}))
-      
-      begin
-        body = Oj.safe_load(response.to_s)
-        raise Exception.new(body["data"]["error_message"]) unless body["status"].eql?("success")
-      rescue
-        raise Exception.new("Unknown error occurred. Please report this to support@block.io. Status #{response.code}.")
-      end
-      
-      body
-      
-    end
-    
     def self.signData(inputs, keys)
       # sign the given data with the given keys
-      # TODO loop is O(n^3), make it better
 
       raise Exception.new("Keys object must be an array of keys, without at least one key inside it.") unless keys.is_a?(Array) and keys.size >= 1
 
-      i = 0
-      while i < inputs.size do
-        # iterate over all signers
-        input = inputs[i]
+      # create a dictionary of keys we have
+      # saves the next loop from being O(n^3)
+      skeys = keys.inject({}){|h,v| h[v.public_key] = v; h}
+      odata = []
 
-        j = 0
-        while j < input['signers'].size do
-          # if our public key matches this signer's public key, sign the data
-          signer = inputs[i]['signers'][j]
+      # saves the next loop from being O(n^2)
+      inputs.each{|input| odata << input['data_to_sign']; odata.push(*input['signers'])}
+
+      data_to_sign = []
+
+      while !(cdata = odata.shift).nil? do
+        # O(n)
+        
+        if cdata.is_a?(String) then
+          # this is data to sign
+
+          data_to_sign.pop # don't let this array grow
+          data_to_sign << cdata
+
+        else
           
-          k = 0
-          while k < keys.size do
-            # sign for each key provided, if we can
-            key = keys[k]
-            signer['signed_data'] = key.sign(input['data_to_sign']) if signer['signer_public_key'] == key.public_key
-            k = k + 1
-          end
-
-          j = j + 1
+          cdata['signed_data'] = skeys[cdata['signer_public_key']].sign(data_to_sign) if skeys.key?(cdata['signer_public_key'])
+          
         end
 
-        i = i + 1
       end
-
+      
       inputs
     end
 
@@ -72,7 +58,7 @@ module BlockIo
       # returns a base64 version of PBKDF2 pincode
       salt = ""
 
-      k1 = OpenSSL::PKCS5.pbkdf2_hmac(
+      part1 = OpenSSL::PKCS5.pbkdf2_hmac(
         secret_pin,
         "",
         1024,
@@ -80,15 +66,15 @@ module BlockIo
         OpenSSL::Digest::SHA256.new
       ).unpack("H*")[0]
       
-      k2 = OpenSSL::PKCS5.pbkdf2_hmac(
-        k1,
+      part2 = OpenSSL::PKCS5.pbkdf2_hmac(
+        part1,
         "",
         1024,
         256/8,
         OpenSSL::Digest::SHA256.new
       ) # binary
 
-      [k2].pack("m0") # the base64 encryption key
+      [part2].pack("m0") # the base64 encryption key
 
     end
     
@@ -101,8 +87,8 @@ module BlockIo
         aes = OpenSSL::Cipher.new(cipher_type)
         aes.decrypt
         aes.key = b64_enc_key.unpack("m0")[0]
-        aes.iv = iv if iv != nil
-        response = aes.update(encrypted_data.unpack("m0")[0]) + aes.final
+        aes.iv = iv unless iv.nil?
+        response = aes.update(encrypted_data.unpack("m0")[0]) << aes.final
       rescue Exception => e
         # decryption failed, must be an invalid Secret PIN
         raise Exception.new("Invalid Secret PIN provided.")
@@ -116,8 +102,8 @@ module BlockIo
       aes = OpenSSL::Cipher.new(cipher_type)
       aes.encrypt
       aes.key = b64_enc_key.unpack("m0")[0]
-      aes.iv = iv if iv != nil
-      [aes.update(data) + aes.final].pack("m0")
+      aes.iv = iv unless iv.nil?
+      [aes.update(data) << aes.final].pack("m0")
     end
 
     # courtesy bitcoin-ruby
