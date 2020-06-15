@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 2.3.0'
   spec.require_paths = ["lib"]
 
-  spec.add_development_dependency "bundler", "~> 2.1.4", ">= 1.6"
+  spec.add_development_dependency "bundler", ">= 1.16", "< 3.0"
   spec.add_development_dependency "rake", "~> 12.3", ">= 12.3.3"
   spec.add_development_dependency "rspec", "~> 3.6", ">= 3.6"
   spec.add_runtime_dependency "ecdsa", "~> 1.2.0", ">= 1.2.0"
