@@ -12,6 +12,8 @@ puts blockio.network
 raise "Please use the LTCTEST network API Key here or modify this script for another network." unless blockio.network == "LTCTEST"
 
 # create 4 keys
+# you will generate your own private keys, for instance: SecureRandom.hex(64). Just note them down somewhere safe before you use them to generate dTrust addresses.
+# WARNING: The phrases below are just for demonstration, DO NOT use them on mainnets, DO NOT use insecurely generated keys
 keys = [ BlockIo::Key.from_passphrase('alpha1alpha2alpha3alpha4'), BlockIo::Key.from_passphrase('alpha4alpha1alpha2alpha3'), BlockIo::Key.from_passphrase('alpha3alpha4alpha1alpha2'), BlockIo::Key.from_passphrase('alpha2alpha3alpha4alpha1') ]
 
 dtrust_address = nil
@@ -20,8 +22,7 @@ dtrust_address_label = "dTrust1_witness_v0"
 begin
   # let's create a new address with all 4 keys as signers, but only 3 signers required (i.e., 4 of 5 multisig, with 1 signature being Block.io)
 
-  signers = ""
-  keys.each { |key| signers += ',' if signers.length > 0; signers += key.public_key; }
+  signers = keys.map{|k| k.public_key}.join(',')
 
   response = blockio.get_new_dtrust_address(:label => dtrust_address_label, :public_keys => signers, :required_signatures => 3, :address_type => "witness_v0")
 

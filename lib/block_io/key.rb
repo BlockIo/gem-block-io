@@ -6,7 +6,7 @@ module BlockIo
       # the privkey must be in hex if at all provided
 
       @group = ECDSA::Group::Secp256k1
-      @private_key = privkey.to_i(16) || 1 + SecureRandom.random_number(group.order - 1)
+      @private_key = (privkey.nil? ? (1 + SecureRandom.random_number(@group.order - 1)) : privkey.to_i(16))
       @public_key = @group.generator.multiply_by_scalar(@private_key)
       @compressed = compressed
 
@@ -40,6 +40,10 @@ module BlockIo
 
       # DER encode this, and return it in hex form
       ECDSA::Format::SignatureDerString.encode(signature).unpack("H*")[0]
+    end
+
+    def valid_signature?(signature, data)
+      ECDSA.valid_signature?(@public_key, [data].pack("H*"), ECDSA::Format::SignatureDerString.decode([signature].pack("H*")))
     end
     
     def self.from_passphrase(passphrase)

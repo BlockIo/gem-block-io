@@ -28,7 +28,7 @@ module BlockIo
 
         else
           
-          cdata['signed_data'] = skeys[cdata['signer_public_key']].sign(data_to_sign) if skeys.key?(cdata['signer_public_key'])
+          cdata['signed_data'] = skeys[cdata['signer_public_key']].sign(data_to_sign.first) if skeys.key?(cdata['signer_public_key'])
           
         end
 
