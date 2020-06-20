@@ -10,7 +10,7 @@ describe "load json object" do
 end
 
 describe "sign withdraw response" do
-  it "with valid key" do
+  it "with valid key and verify with valid key" do
 
     data = Oj.load_file("spec/data/withdraw_response.json")
     encryption_key = BlockIo::Helper.pinToAesKey("blockiotestpininsecure")
@@ -23,16 +23,11 @@ describe "sign withdraw response" do
     
     expect(all_signatures_valid).to eq(true)
 
-    bad_key = BlockIo::Key.new
-    all_signatures_invalid = data["data"]["inputs"].all?{|input| !bad_key.valid_signature?(input["signers"].first["signed_data"], input["data_to_sign"]) }
-
-    expect(all_signatures_invalid).to eq(true)
-    
   end
 end
 
-describe "sign withdraw response with valid key" do
-  it "and verify with invalid key" do
+describe "sign withdraw response" do
+  it "with valid key and verify with invalid key" do
 
     data = Oj.load_file("spec/data/withdraw_response.json")
     encryption_key = BlockIo::Helper.pinToAesKey("blockiotestpininsecure")
