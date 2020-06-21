@@ -12,7 +12,7 @@ describe "Client.withdraw" do
       @req_params = {:from_labels => "testDest", :amounts => "100", :to_labels => "default"}
       @headers = {
         'Accept' => 'application/json',
-        'Connection' => 'close',
+        'Connection' => 'Keep-Alive',
         'Content-Type' => 'application/json; charset=UTF-8',
         'Host' => 'block.io',
         'User-Agent' => "gem:block_io:#{BlockIo::VERSION}"

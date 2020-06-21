@@ -11,15 +11,17 @@ module BlockIo
       @api_key = args[:api_key]
       @encryption_key = Helper.pinToAesKey(args[:pin] || "") if args.key?(:pin)
       @version = args[:version] || 2
-      @base_url = "https://#{args[:hostname] || "block.io"}/api/v#{@version}"
+      @hostname = args[:hostname] || "block.io"
       @proxy = args[:proxy] || {}
       @raise_exception_on_error = args[:raise_exception_on_error] || false
 
       raise Exception.new("Must specify hostname, port, username, password if using a proxy.") if @proxy.keys.size > 0 and [:hostname, :port, :username, :password].any?{|x| !@proxy.key?(x)}
-      
-      @http = HTTP.headers(:accept => "application/json", :user_agent => "gem:block_io:#{VERSION}")
-      @http = @http.via(args[:proxy][:hostname], :args[:proxy][:port], :args[:proxy][:username], :args[:proxy][:password]) if @proxy.key?(:hostname)
 
+      @conn = ConnectionPool.new(:size => args[:pool_size] || 5) { http = HTTP.headers(:accept => "application/json", :user_agent => "gem:block_io:#{VERSION}");
+        http = http.via(args[:proxy][:hostname], :args[:proxy][:port], :args[:proxy][:username], :args[:proxy][:password]) if @proxy.key?(:hostname);
+        http = http.persistent("https://#{@hostname}");
+        http }
+      
       # this will get populated after a successful API call
       @network = nil
 
@@ -116,7 +118,7 @@ module BlockIo
 
     def api_call(args)
 
-      response = @http.post("#{@base_url}/#{args[:method_name]}", :json => args[:params].merge!({:api_key => @api_key}))
+      response = @conn.with {|http| http.post("/api/v#{@version}/#{args[:method_name]}", :json => args[:params].merge!({:api_key => @api_key}))}
       
       begin
         body = Oj.safe_load(response.to_s)

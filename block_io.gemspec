@@ -25,5 +25,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "webmock", "~> 3.8", "< 4.0"
   spec.add_runtime_dependency "ecdsa", "~> 1.2.0", ">= 1.2.0"
   spec.add_runtime_dependency "http", "~> 4.4.1", ">= 4.4.1"
-  spec.add_runtime_dependency "oj", "~> 3.10.6", ">= 3.10.6"
+  spec.add_runtime_dependency "oj", "~> 3.10.6", ">= 3.10"
+  spec.add_runtime_dependency "connection_pool", "~> 2.2.3", ">= 2.2"
 end

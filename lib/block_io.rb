@@ -3,6 +3,7 @@ require "oj"
 require "ecdsa"
 require "openssl"
 require "securerandom"
+require "connection_pool"
 
 require_relative "block_io/version"
 require_relative "block_io/constants"
