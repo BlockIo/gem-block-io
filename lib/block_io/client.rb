@@ -32,7 +32,7 @@ module BlockIo
       raise Exception.new("Must provide arguments as a Hash.") unless args.size <= 1 and args.all?{|x| x.is_a?(Hash)}
       raise Exception.new("Parameter keys must be symbols. For instance: :label => 'default' instead of 'label' => 'default'") unless args[0].nil? or args[0].keys.all?{|x| x.is_a?(Symbol)}
       raise Exception.new("Cannot pass PINs to any calls. PINs can only be set when initiating this library.") if !args[0].nil? and args[0].key?(:pin)
-      raise Exception.new("Initiate a new BlockIo object to specify another API Key.") if !args[0].nil? and args[0].key?(:api_key)
+      raise Exception.new("Do not specify API Keys here. Initiate a new BlockIo object instead if you need to use another API Key.") if !args[0].nil? and args[0].key?(:api_key)
       
       if BlockIo::WITHDRAW_METHODS.key?(method_name) then
         # it's a withdrawal call
@@ -89,10 +89,11 @@ module BlockIo
 
       raise Exception.new("No private_key provided.") unless args.key?(:private_key) and (args[:private_key] || "").size > 0
 
-      key = Key.from_wif(args.delete(:private_key))
-
-      response = api_call({:method_name => method_name, :params => args.merge!({:public_key => key.public_key})})
-      args.delete(:public_key)
+      key = Key.from_wif(args[:private_key])
+      sanitized_args = args.merge({:public_key => key.public_key})
+      sanitized_args.delete(:private_key)
+      
+      response = api_call({:method_name => method_name, :params => sanitized_args})
       
       if response["data"].key?("reference_id") then
         # Block.io's asking us to provide client-side signatures
@@ -116,7 +117,6 @@ module BlockIo
     def api_call(args)
 
       response = @http.post("#{@base_url}/#{args[:method_name]}", :json => args[:params].merge!({:api_key => @api_key}))
-      args[:params].delete(:api_key)
       
       begin
         body = Oj.safe_load(response.to_s)
