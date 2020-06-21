@@ -18,7 +18,7 @@ module BlockIo
       raise Exception.new("Must specify hostname, port, username, password if using a proxy.") if @proxy.keys.size > 0 and [:hostname, :port, :username, :password].any?{|x| !@proxy.key?(x)}
 
       @conn = ConnectionPool.new(:size => args[:pool_size] || 5) { http = HTTP.headers(:accept => "application/json", :user_agent => "gem:block_io:#{VERSION}");
-        http = http.via(args[:proxy][:hostname], :args[:proxy][:port], :args[:proxy][:username], :args[:proxy][:password]) if @proxy.key?(:hostname);
+        http = http.via(args.dig(:proxy, :hostname), args.dig(:proxy, :port), args.dig(:proxy, :username), args.dig(:proxy, :password)) if @proxy.key?(:hostname);
         http = http.persistent("https://#{@hostname}");
         http }
       
