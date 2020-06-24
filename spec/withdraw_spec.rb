@@ -38,12 +38,16 @@ describe "Helper.signData" do
     before(:each) do
       @bad_key = BlockIo::Key.new
       @data = Oj.load_file("spec/data/withdraw_response.json")
-      BlockIo::Helper.signData(@data["data"]["inputs"], [@bad_key])
+      @signatures_added = BlockIo::Helper.signData(@data["data"]["inputs"], [@bad_key])
     end
     
     it "signed_data.nil?" do
       all_signatures_empty = @data["data"]["inputs"].all?{|input| input["signers"].first["signed_data"].nil? }    
       expect(all_signatures_empty).to eq(true)
+    end
+
+    it "!signatures_added?" do
+      expect(@signatures_added).to eq(false)
     end
 
   end
@@ -57,7 +61,11 @@ describe "Helper.signData" do
       @key = BlockIo::Key.from_passphrase(@decrypted)
       @bad_key = BlockIo::Key.new
       @result = Oj.safe_load(Oj.load_file("spec/data/sign_and_finalize_withdrawal_request.json")["signature_data"])["inputs"]
-      BlockIo::Helper.signData(@data["data"]["inputs"], [@key])
+      @signatures_added = BlockIo::Helper.signData(@data["data"]["inputs"], [@key])
+    end
+    
+    it "signatures_added?" do
+      expect(@signatures_added).to eq(true)
     end
     
     it "valid_signature?(key)" do
@@ -77,6 +85,6 @@ describe "Helper.signData" do
       }
       expect(all_signatures_invalid).to eq(true)    
     end
-    
+
   end
 end

@@ -5,36 +5,48 @@ module BlockIo
     def self.signData(inputs, keys)
       # sign the given data with the given keys
 
-      raise Exception.new("Keys object must be an array of keys, without at least one key inside it.") unless keys.is_a?(Array) and keys.size >= 1
+      raise Exception.new("Keys object must be a hash or array containing the appropriate keys.") unless keys.size >= 1
 
+      signatures_added = false
+      
       # create a dictionary of keys we have
       # saves the next loop from being O(n^3)
-      skeys = keys.inject({}){|h,v| h[v.public_key] = v; h}
+      hkeys = (keys.is_a?(Hash) ? keys : keys.inject({}){|h,v| h[v.public_key] = v; h})
       odata = []
 
       # saves the next loop from being O(n^2)
-      inputs.each{|input| odata << input['data_to_sign']; odata.push(*input['signers'])}
+      inputs.each{|input| odata << input["data_to_sign"]; odata << input["signatures_needed"]; odata.push(*input["signers"])}
 
-      data_to_sign = []
-
+      data_to_sign = nil
+      signatures_needed = nil
+      
       while !(cdata = odata.shift).nil? do
         # O(n)
         
         if cdata.is_a?(String) then
           # this is data to sign
 
-          data_to_sign.pop # don't let this array grow
-          data_to_sign << cdata
+          # make a copy of this
+          data_to_sign = '' << cdata
+
+          # number of signatures needed
+          signatures_needed = 0 + odata.shift
 
         else
+          # add signatures if necessary
+          # dTrust required signatures may be lower than number of keys provided
           
-          cdata['signed_data'] = skeys[cdata['signer_public_key']].sign(data_to_sign.first) if skeys.key?(cdata['signer_public_key'])
+          if hkeys.key?(cdata["signer_public_key"]) and signatures_needed > 0 and cdata["signed_data"].nil? then
+            cdata["signed_data"] = hkeys[cdata["signer_public_key"]].sign(data_to_sign) 
+            signatures_needed -= 1
+            signatures_added ||= true
+          end
           
         end
 
       end
-      
-      inputs
+
+      signatures_added
     end
 
     def self.extractKey(encrypted_data, b64_enc_key)

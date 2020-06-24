@@ -6,7 +6,7 @@
 
 require "block_io"
 
-blockio = BlockIo.new(:api_key => ENV['API_KEY'], :pin => "NOT NEEDED", :version => 2)
+blockio = BlockIo::Client.new(:api_key => ENV['API_KEY'], :version => 2)
 puts blockio.get_balance
 puts blockio.network
 
