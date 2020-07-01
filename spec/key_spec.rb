@@ -51,32 +51,6 @@ describe "Key.from_passphrase" do
       expect(@key.sign(@data)).to eq("304402204ac97a4cdad5f842e745e27c3ffbe08b3704900baafab602277a5a196c3a4a3202202bacdf06afaf58032383447a9f3e9a42bfaeabf6dbcf9ab275d8f24171d272cf")
     end
 
-    it "rfc6979_without_extra_entropy" do
-      nonce = BlockIo::Key.send(:deterministicGenerateK, [@data].pack("H*"), @key.private_key.to_i(16)).to_s(16)
-      expect(nonce).to eq("b13fa787e16b878c9a7815c8b508eb9e6a401432a15f340dd3fcde25e5c494b8")
-    end
-
-    it "rfc6979_with_extra_entropy_1" do
-      # Key.deterministicGenerateK([data].pack("H*"), @private_key, counter)
-      nonce = BlockIo::Key.send(:deterministicGenerateK, [@data].pack("H*"), @key.private_key.to_i(16), 1).to_s(16)
-      expect(nonce).to eq("b69b1e880b537aca72b7235506ba04a676bdd2d663e4e1eb7d8c567f48ab0646")
-    end
-
-    it "rfc6979_with_extra_entropy_2" do
-      nonce = BlockIo::Key.send(:deterministicGenerateK, [@data].pack("H*"), @key.private_key.to_i(16), 2).to_s(16)
-      expect(nonce).to eq("e0b71534de1cf4f5019b0bc4e10d655d0e625b531e4911daf44cf2d065dcedd3")
-    end
-    
-    it "rfc6979_with_extra_entropy_3" do
-      nonce = BlockIo::Key.send(:deterministicGenerateK, [@data].pack("H*"), @key.private_key.to_i(16), 3).to_s(16)
-      expect(nonce).to eq("faed0d38abb73e5f909cc989d967e3c4abb873ad177fe72bc35dc8ba42452fc0")
-    end
-
-    it "rfc6979_with_extra_entropy_4" do
-      nonce = BlockIo::Key.send(:deterministicGenerateK, [@data].pack("H*"), @key.private_key.to_i(16), 4).to_s(16)
-      expect(nonce).to eq("96db9090ce1eb13ae91fb15129838d73ba382cfeb48f6d1cf1a1296a3ce94c49")
-    end
-
   end
 
 end
