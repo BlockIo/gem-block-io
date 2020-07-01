@@ -35,7 +35,7 @@ describe "Client.withdraw" do
 
     before(:each) do
 
-      @blockio = BlockIo::Client.new(:api_key => @api_key, :pin => "blockiotestpininsecure", :version => 2)
+      @blockio = BlockIo::Client.new(:api_key => @api_key, :pin => "blockiotestpininsecure", :version => 2, :use_low_r => false)
 
     end
     
@@ -57,7 +57,7 @@ describe "Client.withdraw" do
       @encryption_key = BlockIo::Helper.pinToAesKey("blockiotestpininsecure")
       @key = BlockIo::Helper.extractKey(Oj.load(@withdraw_response)["data"]["encrypted_passphrase"]["passphrase"], @encryption_key)
 
-      @blockio = BlockIo::Client.new(:api_key => @api_key, :keys => [@key], :version => 2)
+      @blockio = BlockIo::Client.new(:api_key => @api_key, :keys => [@key], :version => 2, :use_low_r => false)
 
     end
     
@@ -112,7 +112,7 @@ describe "Client.sweep" do
 
     before(:each) do
 
-      @blockio = BlockIo::Client.new(:api_key => @api_key, :version => 2)
+      @blockio = BlockIo::Client.new(:api_key => @api_key, :version => 2, :use_low_r => false)
 
     end
     
@@ -172,7 +172,7 @@ describe "Client.withdraw_from_dtrust_address" do
 
     before(:each) do
 
-      @blockio = BlockIo::Client.new(:api_key => @api_key, :version => 2)
+      @blockio = BlockIo::Client.new(:api_key => @api_key, :version => 2, :use_low_r => false)
 
     end
 
@@ -192,7 +192,7 @@ describe "Client.withdraw_from_dtrust_address" do
 
       @response = @blockio.withdraw_from_dtrust_address(@req_params)
 
-      BlockIo::Helper.signData(@response["data"]["inputs"], @keys)
+      BlockIo::Helper.signData(@response["data"]["inputs"], @keys, false)
       
       @blockio.sign_and_finalize_withdrawal({:signature_data => @response["data"]})
       
@@ -206,7 +206,7 @@ describe "Client.withdraw_from_dtrust_address" do
   context "with_keys_at_init" do
 
     before(:each) do
-      @blockio = BlockIo::Client.new(:api_key => @api_key, :keys => @keys, :version => 2)
+      @blockio = BlockIo::Client.new(:api_key => @api_key, :keys => @keys, :version => 2, :use_low_r => false)
     end
     
     it "success" do

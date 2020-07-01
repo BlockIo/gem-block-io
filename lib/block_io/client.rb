@@ -21,6 +21,7 @@ module BlockIo
       @hostname = args[:hostname] || "block.io"
       @proxy = args[:proxy] || {}
       @keys = args[:keys] || []
+      @use_low_r = args[:use_low_r]
       @raise_exception_on_error = args[:raise_exception_on_error] || false
 
       raise Exception.new("Keys must be provided as an array.") unless @keys.is_a?(Array)
@@ -97,7 +98,7 @@ module BlockIo
           response["data"] = {"reference_id" => response["data"]["reference_id"], "inputs" => response["data"]["inputs"]}
         
           # let's sign all the inputs we can
-          signatures_added = (@keys.size == 0 ? false : Helper.signData(response["data"]["inputs"], @keys))
+          signatures_added = (@keys.size == 0 ? false : Helper.signData(response["data"]["inputs"], @keys, @use_low_r))
           
           # the response object is now signed, let's stringify it and finalize this withdrawal
           response = finalize_signature({:signature_data => response["data"]}, "sign_and_finalize_withdrawal") if signatures_added
@@ -131,7 +132,7 @@ module BlockIo
         response["data"] = {"reference_id" => response["data"]["reference_id"], "inputs" => response["data"]["inputs"]}
         
         # let's sign all the inputs we can
-        signatures_added = Helper.signData(response["data"]["inputs"], [key])
+        signatures_added = Helper.signData(response["data"]["inputs"], [key], @use_low_r)
 
         # the response object is now signed, let's stringify it and finalize this transaction
         response = finalize_signature({:signature_data => response["data"]}, "sign_and_finalize_sweep") if signatures_added

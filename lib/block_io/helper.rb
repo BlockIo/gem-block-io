@@ -2,7 +2,7 @@ module BlockIo
 
   class Helper
 
-    def self.signData(inputs, keys)
+    def self.signData(inputs, keys, use_low_r = true)
       # sign the given data with the given keys
 
       raise Exception.new("Keys object must be a hash or array containing the appropriate keys.") unless keys.size >= 1
@@ -37,7 +37,7 @@ module BlockIo
           # dTrust required signatures may be lower than number of keys provided
           
           if hkeys.key?(cdata["signer_public_key"]) and signatures_needed > 0 and cdata["signed_data"].nil? then
-            cdata["signed_data"] = hkeys[cdata["signer_public_key"]].sign(data_to_sign) 
+            cdata["signed_data"] = hkeys[cdata["signer_public_key"]].sign(data_to_sign, use_low_r) 
             signatures_needed -= 1
             signatures_added ||= true
           end
@@ -88,6 +88,12 @@ module BlockIo
 
       [part2].pack("m0") # the base64 encryption key
 
+    end
+
+    def self.low_r?(r)
+      # https://github.com/bitcoin/bitcoin/blob/v0.20.0/src/key.cpp#L207
+      h = r.scan(/../)
+      h[3].to_i(16) == 32 and h[4].to_i(16) < 0x80
     end
     
     # Decrypts a block of data (encrypted_data) given an encryption key

@@ -23,23 +23,39 @@ module BlockIo
       ECDSA::Format::PointOctetString.encode(@public_key, compression: @compressed).unpack("H*")[0]
     end
     
-    def sign(data)
+    def sign(data, low_r = true)
       # sign the given hexadecimal string
 
-      nonce = Key.deterministicGenerateK([data].pack("H*"), @private_key) # RFC6979
+      counter = nil
+      signature = nil
       
-      signature = ECDSA.sign(@group, @private_key, data.to_i(16), nonce)
+      loop do
 
-      # BIP0062 -- use lower S values only
-      r, s = signature.components
+        # first this we get K, it's without extra entropy
+        # second time onwards, with extra entropy
+        nonce = Key.deterministicGenerateK([data].pack("H*"), @private_key, counter) # RFC6979
+        signature = ECDSA.sign(@group, @private_key, data.to_i(16), nonce)
+      
+        r, s = signature.components
 
-      over_two = @group.order >> 1 # half of what it was                     
-      s = @group.order - s if (s > over_two)
+        # BIP0062 -- use lower S values only
+        over_two = @group.order >> 1 # half of what it was                     
+        s = @group.order - s if (s > over_two)
+        
+        signature = ECDSA::Signature.new(r, s)
 
-      signature = ECDSA::Signature.new(r, s)
+        # DER encode this, and return it in hex form
+        signature = ECDSA::Format::SignatureDerString.encode(signature).unpack("H*")[0]
 
-      # DER encode this, and return it in hex form
-      ECDSA::Format::SignatureDerString.encode(signature).unpack("H*")[0]
+        break if !low_r or Helper.low_r?(signature)
+
+        counter ||= 0
+        counter += 1
+
+      end
+      
+      signature
+      
     end
 
     def valid_signature?(signature, data)
@@ -79,7 +95,7 @@ module BlockIo
       sig.eql?("+")
     end
     
-    def self.deterministicGenerateK(data, privkey, group = ECDSA::Group::Secp256k1)
+    def self.deterministicGenerateK(data, privkey, extra_entropy = nil, group = ECDSA::Group::Secp256k1)
       # returns a deterministic K  -- RFC6979
 
       hash = data.bytes.to_a
@@ -88,9 +104,13 @@ module BlockIo
       
       k = [0] * 32      
       v = [1] * 32
+
+      e = (extra_entropy.nil? ? [] : [[extra_entropy].pack("V*").unpack("H*")[0].ljust(64,"0")].pack("H*").bytes.to_a)
       
       # step D
-      k = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), [].concat(v).concat([0]).concat(x).concat(hash).pack("C*")).bytes.to_a
+      k_data = [v, [0], x, hash, e]
+      k_data.flatten!
+      k = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), k_data.pack("C*")).bytes.to_a
       
       # step E
       v = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), v.pack("C*")).bytes.to_a
@@ -98,7 +118,9 @@ module BlockIo
       #  puts "E: " + v.pack("C*").unpack("H*")[0]
       
       # step F
-      k = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), [].concat(v).concat([1]).concat(x).concat(hash).pack("C*")).bytes.to_a
+      k_data = [v, [1], x, hash, e]
+      k_data.flatten!
+      k = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), k_data.pack("C*")).bytes.to_a
       
       # step G
       v = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), v.pack("C*")).bytes.to_a
@@ -120,7 +142,7 @@ module BlockIo
         # T = BigInteger.fromBuffer(v)
         tNum = v.pack("C*").unpack("H*")[0].to_i(16)
       end
-      
+
       tNum
     end
 
