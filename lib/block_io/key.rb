@@ -2,14 +2,15 @@ module BlockIo
 
   class Key
 
-    def initialize(privkey = nil, compressed = true)
+    def initialize(privkey = nil, use_low_r = true, compressed = true)
       # the privkey must be in hex if at all provided
 
       @group = ECDSA::Group::Secp256k1
       @private_key = (privkey.nil? ? (1 + SecureRandom.random_number(@group.order - 1)) : privkey.to_i(16))
       @public_key = @group.generator.multiply_by_scalar(@private_key)
       @compressed = compressed
-
+      @use_low_r = use_low_r
+      
     end 
     
     def private_key
@@ -23,7 +24,7 @@ module BlockIo
       ECDSA::Format::PointOctetString.encode(@public_key, compression: @compressed).unpack("H*")[0]
     end
     
-    def sign(data, low_r = true)
+    def sign(data)
       # sign the given hexadecimal string
 
       counter = nil
@@ -47,7 +48,7 @@ module BlockIo
         # DER encode this, and return it in hex form
         signature = ECDSA::Format::SignatureDerString.encode(signature).unpack("H*")[0]
 
-        break if !low_r or Helper.low_r?(signature)
+        break if !@use_low_r or Helper.low_r?(signature)
 
         counter ||= 0
         counter += 1
@@ -62,7 +63,7 @@ module BlockIo
       ECDSA.valid_signature?(@public_key, [data].pack("H*"), ECDSA::Format::SignatureDerString.decode([signature].pack("H*")))
     end
     
-    def self.from_passphrase(passphrase)
+    def self.from_passphrase(passphrase, use_low_r = true)
       # ATTENTION: use BlockIo::Key.new to generate new private keys. Using passphrases is not recommended due to lack of / low entropy.
       # create a private/public key pair from a given passphrase
       # use a long, random passphrase. your security depends on the passphrase's entropy.
@@ -70,12 +71,12 @@ module BlockIo
       raise Exception.new("Must provide passphrase at least 8 characters long.") if passphrase.nil? or passphrase.length < 8
       
       hashed_key = Helper.sha256([passphrase].pack("H*")) # must pass bytes to sha256
-
+      
       # modding is for backward compatibility with legacy bitcoinjs
-      Key.new((hashed_key.to_i(16) % ECDSA::Group::Secp256k1.order).to_s(16))
+      Key.new((hashed_key.to_i(16) % ECDSA::Group::Secp256k1.order).to_s(16), use_low_r)
     end
 
-    def self.from_wif(wif)
+    def self.from_wif(wif, use_low_r = true)
       # returns a new key extracted from the Wallet Import Format provided
       # TODO check against checksum
 
@@ -84,7 +85,7 @@ module BlockIo
 
       compressed = hexkey[2..hexkey.length].length-8 > 64 and hexkey[2..hexkey.length][64...66] == "01"
 
-      Key.new(actual_key, compressed)
+      Key.new(actual_key, use_low_r, compressed)
 
     end
 
@@ -115,8 +116,6 @@ module BlockIo
       # step E
       v = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), v.pack("C*")).bytes.to_a
       
-      #  puts "E: " + v.pack("C*").unpack("H*")[0]
-      
       # step F
       k_data = [v, [1], x, hash, e]
       k_data.flatten!
@@ -134,7 +133,9 @@ module BlockIo
       # step H3
       while (!isPositive(tNum) or tNum >= group.order) do
         # k = crypto.HmacSHA256(Buffer.concat([v, new Buffer([0])]), k)
-        k = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), [].concat(v).concat([0]).pack("C*")).bytes.to_a
+        k_data = [v, [0]]
+        k_data.flatten!
+        k = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), k_data.pack("C*")).bytes.to_a
         
         # v = crypto.HmacSHA256(v, k)
         v = OpenSSL::HMAC.digest(OpenSSL::Digest.new('sha256'), k.pack("C*"), v.pack("C*")).bytes.to_a

@@ -82,7 +82,7 @@ module BlockIo
 
           raise Exception.new("PIN not set and no keys provided. Cannot execute withdrawal requests.") unless @encryption_key or @keys.size > 0
 
-          key = Helper.extractKey(encrypted_passphrase["passphrase"], @encryption_key)
+          key = Helper.extractKey(encrypted_passphrase["passphrase"], @encryption_key, @use_low_r)
           raise Exception.new("Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.") unless key.public_key.eql?(encrypted_passphrase["signer_public_key"])
 
           # store this key for later use
@@ -98,7 +98,7 @@ module BlockIo
           response["data"] = {"reference_id" => response["data"]["reference_id"], "inputs" => response["data"]["inputs"]}
         
           # let's sign all the inputs we can
-          signatures_added = (@keys.size == 0 ? false : Helper.signData(response["data"]["inputs"], @keys, @use_low_r))
+          signatures_added = (@keys.size == 0 ? false : Helper.signData(response["data"]["inputs"], @keys))
           
           # the response object is now signed, let's stringify it and finalize this withdrawal
           response = finalize_signature({:signature_data => response["data"]}, "sign_and_finalize_withdrawal") if signatures_added
@@ -119,7 +119,7 @@ module BlockIo
 
       raise Exception.new("No private_key provided.") unless args.key?(:private_key) and (args[:private_key] || "").size > 0
 
-      key = Key.from_wif(args[:private_key])
+      key = Key.from_wif(args[:private_key], @use_low_r)
       sanitized_args = args.merge({:public_key => key.public_key})
       sanitized_args.delete(:private_key)
       
@@ -132,7 +132,7 @@ module BlockIo
         response["data"] = {"reference_id" => response["data"]["reference_id"], "inputs" => response["data"]["inputs"]}
         
         # let's sign all the inputs we can
-        signatures_added = Helper.signData(response["data"]["inputs"], [key], @use_low_r)
+        signatures_added = Helper.signData(response["data"]["inputs"], [key])
 
         # the response object is now signed, let's stringify it and finalize this transaction
         response = finalize_signature({:signature_data => response["data"]}, "sign_and_finalize_sweep") if signatures_added

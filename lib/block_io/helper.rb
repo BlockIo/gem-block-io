@@ -2,7 +2,7 @@ module BlockIo
 
   class Helper
 
-    def self.signData(inputs, keys, use_low_r = true)
+    def self.signData(inputs, keys)
       # sign the given data with the given keys
 
       raise Exception.new("Keys object must be a hash or array containing the appropriate keys.") unless keys.size >= 1
@@ -37,7 +37,7 @@ module BlockIo
           # dTrust required signatures may be lower than number of keys provided
           
           if hkeys.key?(cdata["signer_public_key"]) and signatures_needed > 0 and cdata["signed_data"].nil? then
-            cdata["signed_data"] = hkeys[cdata["signer_public_key"]].sign(data_to_sign, use_low_r) 
+            cdata["signed_data"] = hkeys[cdata["signer_public_key"]].sign(data_to_sign) 
             signatures_needed -= 1
             signatures_added ||= true
           end
@@ -49,14 +49,14 @@ module BlockIo
       signatures_added
     end
 
-    def self.extractKey(encrypted_data, b64_enc_key)
+    def self.extractKey(encrypted_data, b64_enc_key, use_low_r = true)
       # passphrase is in plain text
       # encrypted_data is in base64, as it was stored on Block.io
       # returns the private key extracted from the given encrypted data
       
       decrypted = self.decrypt(encrypted_data, b64_enc_key)
       
-      Key.from_passphrase(decrypted)
+      Key.from_passphrase(decrypted, use_low_r)
 
     end
     
