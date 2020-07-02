@@ -3,3 +3,4 @@ vendor/
 .bundle/
 *.gem
 *~
+.DS_Store
