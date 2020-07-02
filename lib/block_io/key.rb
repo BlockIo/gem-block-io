@@ -27,7 +27,7 @@ module BlockIo
     def sign(data)
       # sign the given hexadecimal string
 
-      counter = nil
+      counter = 0
       signature = nil
       
       loop do
@@ -50,7 +50,6 @@ module BlockIo
 
         break if !@use_low_r or Helper.low_r?(signature)
 
-        counter ||= 0
         counter += 1
 
       end
@@ -106,7 +105,7 @@ module BlockIo
       k = [0] * 32      
       v = [1] * 32
 
-      e = (extra_entropy.nil? ? [] : [extra_entropy.to_s(16).rjust(64,"0").scan(/../).reverse.join].pack("H*").bytes.to_a)
+      e = (extra_entropy.to_i <= 0 ? [] : [extra_entropy.to_s(16).rjust(64,"0").scan(/../).reverse.join].pack("H*").bytes.to_a)
       
       # step D
       k_data = [v, [0], x, hash, e]

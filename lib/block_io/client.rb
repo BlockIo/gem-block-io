@@ -156,6 +156,8 @@ module BlockIo
     
     def api_call(args)
 
+      raise Exception.new("No connections left to perform API call. Please re-initialize BlockIo::Client with :pool_size greater than #{@conn.size}.") unless @conn.available > 0
+      
       response = @conn.with {|http| http.post("/api/v#{@version}/#{args[:method_name]}", :json => args[:params].merge({:api_key => @api_key}))}
 
       begin
