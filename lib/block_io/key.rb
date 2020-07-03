@@ -34,7 +34,9 @@ module BlockIo
 
         # first this we get K, it's without extra entropy
         # second time onwards, with extra entropy
-        nonce = Key.deterministicGenerateK([data].pack("H*"), @private_key, counter) # RFC6979
+
+        extra_entropy = (counter <= 0 ? "" : Key.extraEntropy(counter))
+        nonce = Key.deterministicGenerateK([data].pack("H*"), @private_key, extra_entropy) # RFC6979
         signature = ECDSA.sign(@group, @private_key, data.to_i(16), nonce)
       
         r, s = signature.components
@@ -89,13 +91,17 @@ module BlockIo
     end
 
     private
+
+    def self.extraEntropy(counter)
+      [counter.to_s(16).rjust(64,"0")].pack("H*").reverse
+    end
     
     def self.isPositive(i)
       sig = "!+-"[i <=> 0]
       sig.eql?("+")
     end
     
-    def self.deterministicGenerateK(data, privkey, extra_entropy = nil, group = ECDSA::Group::Secp256k1)
+    def self.deterministicGenerateK(data, privkey, extra_entropy = "", group = ECDSA::Group::Secp256k1)
       # returns a deterministic K  -- RFC6979
 
       hash = data.bytes.to_a
@@ -105,7 +111,7 @@ module BlockIo
       k = [0] * 32      
       v = [1] * 32
 
-      e = (extra_entropy.to_i <= 0 ? [] : [extra_entropy.to_s(16).rjust(64,"0").scan(/../).reverse.join].pack("H*").bytes.to_a)
+      e = extra_entropy.bytes.to_a
       
       # step D
       k_data = [v, [0], x, hash, e]
