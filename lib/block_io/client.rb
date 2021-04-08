@@ -118,7 +118,7 @@ module BlockIo
             next unless @keys.key?(signer_public_key)
             
             signature = @keys[signer_public_key].sign(sighash_for_input).unpack("H*")[0] # in hex
-            signatures << {:input_index => i, :public_key => signer_public_key, :signature => signature, :sighash => sighash_for_input.unpack("H*")[0]}
+            signatures << {:input_index => i, :public_key => signer_public_key, :signature => signature}
             
           end
 
