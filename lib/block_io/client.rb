@@ -27,7 +27,7 @@ module BlockIo
       raise Exception.new("Keys must be BlockIo::Key objects.") unless @keys.all?{|key| key.is_a?(BlockIo::Key)}
 
       # make a hash of the keys we've been given
-      @keys = @keys.inject({}){|h,v| h[v.public_key] = Bitcoin::Key.new(:priv_key => v, :key_type => :compressed); h}
+      @keys = @keys.inject({}){|h,v| h[v.pubkey] = v; h}
       
       raise Exception.new("Must specify hostname, port, username, password if using a proxy.") if @proxy.keys.size > 0 and [:hostname, :port, :username, :password].any?{|x| !@proxy.key?(x)}
 
@@ -87,16 +87,16 @@ module BlockIo
       # extract key
       encrypted_key = data['data']['user_key']
 
-      if !encrypted_key.nil? and !@key.key?(encrypted_key['public_key']) then
+      if !encrypted_key.nil? and !@keys.key?(encrypted_key['public_key']) then
         # decrypt the key with PIN
 
         raise Exception.new("PIN not set and no keys provided. Cannot sign transaction.") unless @encryption_key or @keys.size > 0
         
         key = Helper.extractKey(encrypted_key['encrypted_passphrase'], @encryption_key)
-        raise Exception.new("Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.") unless key.public_key.eql?(encrypted_key["public_key"])
+        raise Exception.new("Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.") unless key.pubkey.eql?(encrypted_key["public_key"])
 
         # store this key for later use
-        @keys[key.public_key] = key
+        @keys[key.pubkey] = key
       end
 
       signatures = []
@@ -118,7 +118,7 @@ module BlockIo
             next unless @keys.key?(signer_public_key)
             
             signature = @keys[signer_public_key].sign(sighash_for_input).unpack("H*")[0] # in hex
-            signatures << {:input_index => i, :public_key => signer_public_key, :signature => signature}
+            signatures << {:input_index => i, :public_key => signer_public_key, :signature => signature, :sighash => sighash_for_input.unpack("H*")[0]}
             
           end
 

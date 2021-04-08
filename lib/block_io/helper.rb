@@ -41,7 +41,7 @@ module BlockIo
         raise "Unrecognize address type: #{address_type}"
       end
 
-      sig_hash
+      sighash
       
     end
     
