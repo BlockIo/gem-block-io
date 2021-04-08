@@ -1,7 +1,7 @@
 --- !ruby/object:Bitcoin::ChainParams
 network: "LTCTEST"
 address_version: "6f"
-p2sh_version: "c4"
+p2sh_version: "3a"
 bech32_hrp: 'tltc'
 privkey_version: "ef"
 extended_privkey_version: "0436f6e1"
