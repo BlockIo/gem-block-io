@@ -1,41 +1,8 @@
 --- !ruby/object:Bitcoin::ChainParams
 network: "DOGE"
-magic_head: "f9beb4d9"
-message_magic: "Dogecoin Signed Message:\n"
 address_version: "1e"
 p2sh_version: "16"
-bech32_hrp: ""
+bech32_hrp: "doge"
 privkey_version: "9e"
 extended_privkey_version: "02fac398"
 extended_pubkey_version: "02facafd"
-bip49_pubkey_p2wpkh_p2sh_version: "049d7cb2"
-bip49_pubkey_p2wsh_p2sh_version: "0295b43f"
-bip49_privkey_p2wpkh_p2sh_version: "049d7878"
-bip49_privkey_p2wsh_p2sh_version: "0295b005"
-bip84_pubkey_p2wpkh_version: "04b24746"
-bip84_pubkey_p2wsh_version: "02aa7ed3"
-bip84_privkey_p2wpkh_version: "04b2430c"
-bip84_privkey_p2wsh_version: "02aa7a99"
-default_port: 8333
-protocol_version: 70013
-retarget_interval: 2016
-retarget_time: 1209600 # 2 weeks
-target_spacing: 600 # block interval
-max_money: 21000000
-bip34_height: 227931
-proof_of_work_limit: 0x1d00ffff
-dns_seeds:
-  - "seed.bitcoin.sipa.be"
-  - "dnsseed.bluematt.me"
-  - "dnsseed.bitcoin.dashjr.org"
-  - "seed.bitcoinstats.com"
-  - "seed.bitcoin.jonasschnelli.ch"
-genesis:
-  hash: "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
-  merkle_root: "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
-  time: 1231006505
-  nonce: 2083236893
-  bits: 0x1d00ffff
-  version: 1
-  prev_hash: "0000000000000000000000000000000000000000000000000000000000000000"
-bip44_coin_type: 0
