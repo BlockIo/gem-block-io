@@ -21,14 +21,13 @@ module BlockIo
       @hostname = args[:hostname] || "block.io"
       @proxy = args[:proxy] || {}
       @keys = args[:keys] || []
-      @use_low_r = args[:use_low_r]
       @raise_exception_on_error = args[:raise_exception_on_error] || false
 
       raise Exception.new("Keys must be provided as an array.") unless @keys.is_a?(Array)
       raise Exception.new("Keys must be BlockIo::Key objects.") unless @keys.all?{|key| key.is_a?(BlockIo::Key)}
 
       # make a hash of the keys we've been given
-      @keys = @keys.inject({}){|h,v| h[v.public_key] = v; h}
+      @keys = @keys.inject({}){|h,v| h[v.public_key] = Bitcoin::Key.new(:priv_key => v, :key_type => :compressed); h}
       
       raise Exception.new("Must specify hostname, port, username, password if using a proxy.") if @proxy.keys.size > 0 and [:hostname, :port, :username, :password].any?{|x| !@proxy.key?(x)}
 
@@ -51,109 +50,97 @@ module BlockIo
       raise Exception.new("Cannot pass PINs to any calls. PINs can only be set when initiating this library.") if !args[0].nil? and args[0].key?(:pin)
       raise Exception.new("Do not specify API Keys here. Initiate a new BlockIo object instead if you need to use another API Key.") if !args[0].nil? and args[0].key?(:api_key)
       
-      if BlockIo::WITHDRAW_METHODS.key?(method_name) then
-        # it's a withdrawal call
-        withdraw(args[0], method_name)
-      elsif BlockIo::SWEEP_METHODS.key?(method_name) then
-        # we're sweeping from an address
-        sweep(args[0], method_name)
-      elsif BlockIo::FINALIZE_SIGNATURE_METHODS.key?(method_name) then
-        # we're finalize the transaction signatures
-        finalize_signature(args[0], method_name)
-      else
-        api_call({:method_name => method_name, :params => args[0] || {}})
-      end
+      api_call({:method_name => method_name, :params => args[0] || {}})
       
     end
 
-    private
+    # TODO do sweep and dtrust
+    
+    def create_and_sign_transaction(data, keys = [])
+      # takes data from prepare_transaction
+      # creates the transaction given the inputs and outputs from data
+      # signs the transaction using keys (if not provided, decrypts the key using the PIN)
 
-    def withdraw(args = {}, method_name = "withdraw")      
+      raise "Data must be contain one or more inputs" unless data['data']['inputs'].size > 0
+      raise "Data must contain one or more outputs" unless data['data']['outputs'].size > 0
+      raise "Data must contain information about addresses" unless data['data']['input_address_data'].size > 0 # TODO make stricter
+      # TODO debug all of this
+      
+      # load the chain parameters for this network
+      Bitcoin.chain_params = @network
 
-      response = api_call({:method_name => method_name, :params => args})
+      inputs = data['data']['inputs']
+      outputs = data['data']['outputs']
 
-      if response["data"].key?("reference_id") then
-        # Block.io's asking us to provide client-side signatures
+      tx = Bitcoin::Tx.new
 
-        encrypted_passphrase = response["data"]["encrypted_passphrase"]
+      # populate the inputs
+      inputs.each do |input|
+        tx.in << Bitcoin::TxIn.new(:out_point => Bitcoin::OutPoint.from_txid(input['previous_txid'], input['previous_output_index']))
+      end
 
-        if !encrypted_passphrase.nil? and !@keys.key?(encrypted_passphrase["signer_public_key"]) then
-          # encrypted passphrase was provided, and we do not have the signer's key, so let's extract it first
+      # populate the outputs
+      outputs.each do |output|
+        tx.out << Bitcoin::TxOut.new(:value => (BigDecimal(output['output_value']) * BigDecimal(100000000)).to_i, :script_pubkey => Bitcoin::Script.parse_from_addr(output['receiving_address']))
+      end
 
-          raise Exception.new("PIN not set and no keys provided. Cannot execute withdrawal requests.") unless @encryption_key or @keys.size > 0
+      # extract key
+      encrypted_key = data['data']['user_key']
 
-          key = Helper.extractKey(encrypted_passphrase["passphrase"], @encryption_key, @use_low_r)
-          raise Exception.new("Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.") unless key.public_key.eql?(encrypted_passphrase["signer_public_key"])
+      if !encrypted_key.nil? and !@key.key?(encrypted_key['public_key']) then
+        # decrypt the key with PIN
 
-          # store this key for later use
-          @keys[key.public_key] = key
+        raise Exception.new("PIN not set and no keys provided. Cannot sign transaction.") unless @encryption_key or @keys.size > 0
+        
+        key = Helper.extractKey(encrypted_key['encrypted_passphrase'], @encryption_key)
+        raise Exception.new("Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.") unless key.public_key.eql?(encrypted_key["public_key"])
 
+        # store this key for later use
+        @keys[key.public_key] = key
+      end
+
+      signatures = []
+      
+      if @keys.size > 0 then
+        # try to sign whatever we can here and give the user the data back
+        # Block.io will check to see if all signatures are present, or return an error otherwise saying insufficient signatures provided
+
+        i = 0
+        while i < inputs.size do
+          input = inputs[i]
+
+          input_address_data = data['data']['input_address_data'].detect{|d| d['address'] == input['spending_address']}
+          sighash_for_input = Helper.getSigHashForInput(tx, i, input, input_address_data) # in bytes
+
+          input_address_data['public_keys'].each do |signer_public_key|
+            # sign what we can and append signatures to the signatures object
+            
+            next unless @keys.key?(signer_public_key)
+            
+            signature = @keys[signer_public_key].sign(sighash_for_input).unpack("H*")[0] # in hex
+            signatures << {:input_index => i, :public_key => signer_public_key, :signature => signature}
+            
+          end
+
+          i += 1 # go to next input
         end
-
-        if @keys.size > 0 then
-          # if we have at least one key available, try to send signatures back
-          # if a dtrust withdrawal is used without any keys stored in the BlockIo::Client object, the output of this call will be the previous response from Block.io
-          
-          # we just need reference_id and inputs
-          response["data"] = {"reference_id" => response["data"]["reference_id"], "inputs" => response["data"]["inputs"]}
-        
-          # let's sign all the inputs we can
-          signatures_added = (@keys.size == 0 ? false : Helper.signData(response["data"]["inputs"], @keys))
-          
-          # the response object is now signed, let's stringify it and finalize this withdrawal
-          response = finalize_signature({:signature_data => response["data"]}, "sign_and_finalize_withdrawal") if signatures_added
-          
-          # if we provided all the required signatures, this transaction went through
-          # otherwise Block.io responded with data asking for more signatures and recorded the signature we provided above
-          # the latter will be the case for dTrust addresses
-        end
         
       end
 
-      response
-
+      # the response for submitting the transaction
+      {:tx_hex => tx.to_hex, :signatures => signatures}
+      
     end
 
-    def sweep(args = {}, method_name = "sweep_from_address")
-      # sweep coins from a given address and key
+    def submit_transaction(data)
+      # submits minimal data from create_and_sign_transaction's response
 
-      raise Exception.new("No private_key provided.") unless args.key?(:private_key) and (args[:private_key] || "").size > 0
-
-      key = Key.from_wif(args[:private_key], @use_low_r)
-      sanitized_args = args.merge({:public_key => key.public_key})
-      sanitized_args.delete(:private_key)
-      
-      response = api_call({:method_name => method_name, :params => sanitized_args})
-      
-      if response["data"].key?("reference_id") then
-        # Block.io's asking us to provide client-side signatures
-
-        # we just need the reference_id and inputs
-        response["data"] = {"reference_id" => response["data"]["reference_id"], "inputs" => response["data"]["inputs"]}
-        
-        # let's sign all the inputs we can
-        signatures_added = Helper.signData(response["data"]["inputs"], [key])
-
-        # the response object is now signed, let's stringify it and finalize this transaction
-        response = finalize_signature({:signature_data => response["data"]}, "sign_and_finalize_sweep") if signatures_added
-
-        # if we provided all the required signatures, this transaction went through
-      end
-
-      response
-
-    end
-
-    def finalize_signature(args = {}, method_name = "sign_and_finalize_withdrawal")
-
-      raise Exception.new("Object must have reference_id and inputs keys.") unless args.key?(:signature_data) and args[:signature_data].key?("inputs") and args[:signature_data].key?("reference_id")
-
-      signatures = {"reference_id" => args[:signature_data]["reference_id"], "inputs" => args[:signature_data]["inputs"]}
-
-      response = api_call({:method_name => method_name, :params => {:signature_data => Oj.dump(signatures)}})
+      api_call({:method_name => method_name, :params => {:transaction_data => Oj.dump(data)}})
       
     end
     
+    private
+
     def api_call(args)
 
       raise Exception.new("No connections left to perform API call. Please re-initialize BlockIo::Client with :pool_size greater than #{@conn.size}.") unless @conn.available > 0

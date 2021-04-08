@@ -2,61 +2,57 @@ module BlockIo
 
   class Helper
 
-    def self.signData(inputs, keys)
-      # sign the given data with the given keys
-
-      raise Exception.new("Keys object must be a hash or array containing the appropriate keys.") unless keys.size >= 1
-
-      signatures_added = false
+    def self.getSigHashForInput(tx, input_index, input_data, input_address_data)
+      # returns the sighash for the given input in bytes
       
-      # create a dictionary of keys we have
-      # saves the next loop from being O(n^3)
-      hkeys = (keys.is_a?(Hash) ? keys : keys.inject({}){|h,v| h[v.public_key] = v; h})
-      odata = []
-
-      # saves the next loop from being O(n^2)
-      inputs.each{|input| odata << input["data_to_sign"]; odata << input["signatures_needed"]; odata.push(*input["signers"])}
-
-      data_to_sign = nil
-      signatures_needed = nil
+      address_type = input_address_data["address_type"]
+      input_value = (BigDecimal(input_data['input_value']) * BigDecimal(100000000)).to_i # in sats
+      sighash = nil
       
-      while !(cdata = odata.shift).nil? do
-        # O(n)
+      if address_type == "P2SH" then
+        # P2SH addresses
         
-        if cdata.is_a?(String) then
-          # this is data to sign
+        script = Bitcoin::Script.to_p2sh_multisig_script(input_address_data["required_signatures"], input_address_data["public_keys"])
+        sighash = tx.sighash_for_input(input_index, script.last)
+        
+      elsif address_type == "P2WSH-over-P2SH" or address_type == "WITNESS_V0" then
+        # P2WSH-over-P2SH addresses
+        # WITNESS_V0 addresses
 
-          # make a copy of this
-          data_to_sign = '' << cdata
+        script = Bitcoin::Script.to_p2sh_multisig_script(input_address_data["required_signatures"], input_address_data["public_keys"])
+        sighash = tx.sighash_for_input(input_index, script.last, amount: input_value, sig_version: :witness_v0)
+        
+      elsif address_type == "P2WPKH-over-P2SH" or address_type == "P2WPKH" then
+        # P2WPKH-over-P2SH addresses
+        # P2WPKH addresses
+        
+        pub_key = Bitcoin::Key.new(:pubkey => input_address_data['public_keys'].first, :key_type => :compressed)
+        script = Bitcoin::Script.to_p2wpkh(pub_key.hash160)
+        sighash = tx.sighash_for_input(input_index, script, amount: input_value, sig_version: :witness_v0)
+        
+      elsif address_type == "P2PKH" then
+        # P2PKH addresses
 
-          # number of signatures needed
-          signatures_needed = 0 + odata.shift
+        pub_key = Bitcoin::Key.new(:pubkey => input_address_data['public_keys'].first, :key_type => :compressed)
+        script = Bitcoin::Script.to_p2pkh(pub_key.hash160)
+        sighash = tx.sighash_for_input(input_index, script)
 
-        else
-          # add signatures if necessary
-          # dTrust required signatures may be lower than number of keys provided
-          
-          if hkeys.key?(cdata["signer_public_key"]) and signatures_needed > 0 and cdata["signed_data"].nil? then
-            cdata["signed_data"] = hkeys[cdata["signer_public_key"]].sign(data_to_sign) 
-            signatures_needed -= 1
-            signatures_added ||= true
-          end
-          
-        end
-
+      else
+        raise "Unrecognize address type: #{address_type}"
       end
 
-      signatures_added
+      sig_hash
+      
     end
-
-    def self.extractKey(encrypted_data, b64_enc_key, use_low_r = true)
+    
+    def self.extractKey(encrypted_data, b64_enc_key)
       # passphrase is in plain text
       # encrypted_data is in base64, as it was stored on Block.io
       # returns the private key extracted from the given encrypted data
       
       decrypted = self.decrypt(encrypted_data, b64_enc_key)
       
-      Key.from_passphrase(decrypted, use_low_r)
+      Key.from_passphrase(decrypted)
 
     end
     
@@ -90,12 +86,6 @@ module BlockIo
 
     end
 
-    def self.low_r?(r)
-      # https://github.com/bitcoin/bitcoin/blob/v0.20.0/src/key.cpp#L207
-      h = r.scan(/../)
-      h[3].to_i(16) == 32 and h[4].to_i(16) < 0x80
-    end
-    
     # Decrypts a block of data (encrypted_data) given an encryption key
     def self.decrypt(encrypted_data, b64_enc_key, iv = nil, cipher_type = "AES-256-ECB")
       
