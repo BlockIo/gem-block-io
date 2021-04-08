@@ -9,24 +9,10 @@ module Bitcoin
     @chain_param = name.to_sym
   end
   
-  # current bitcoin network chain params.
+  # current network chain params.
   def self.chain_params
     return @current_chain if @current_chain
-    case @chain_param
-    when :BTC
-      @current_chain = Bitcoin::ChainParams.get("BTC")
-    when :LTC
-      @current_chain = Bitcoin::ChainParams.get("LTC")
-    when :DOGE
-      @current_chain = Bitcoin::ChainParams.get("DOGE")
-    when :BTCTEST
-      @current_chain = Bitcoin::ChainParams.get("BTCTEST")
-    when :LTCTEST
-      @current_chain = Bitcoin::ChainParams.get("LTCTEST")
-    when :DOGETEST
-      @current_chain = Bitcoin::ChainParams.get("DOGETEST")
-    end
-    @current_chain
+    return (@current_chain = Bitcoin::ChainParams.get(@chain_param.to_s))
   end
   
   class ChainParams
@@ -84,7 +70,7 @@ module Bitcoin
     def initialize(priv_key: nil, pubkey: nil, key_type: nil, compressed: true, allow_hybrid: false)
       # override so enforce compressed keys
       
-      raise "key_type must always be compressed" unless key_type == :compressed
+      raise "key_type must always be compressed" unless key_type == :compressed or key_type == TYPES[:compressed]
       puts "[Warning] Use key_type parameter instead of compressed. compressed parameter removed in the future." if key_type.nil? && !compressed.nil? && pubkey.nil?
       if key_type
         @key_type = key_type
