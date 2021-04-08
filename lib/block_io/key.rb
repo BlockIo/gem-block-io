@@ -4,7 +4,7 @@ module BlockIo
 
     def self.generate
       # returns a new key
-      Bitcoin::Key.generate(:compressed)
+      Bitcoin::Key.generate # compressed
     end
     
     def self.from_passphrase(passphrase)
@@ -17,7 +17,7 @@ module BlockIo
       hashed_key = Helper.sha256([passphrase].pack("H*")) # must pass bytes to sha256
       
       # modding is for backward compatibility with legacy bitcoinjs
-      Bitcoin::Key.new(:priv_key => (hashed_key.to_i(16) % ECDSA::Group::Secp256k1.order).to_s(16), :key_type => :compressed)
+      Bitcoin::Key.new(:priv_key => (hashed_key.to_i(16) % ECDSA::Group::Secp256k1.order).to_s(16), :key_type => 0x01)
     end
 
     def self.from_wif(wif)

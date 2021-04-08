@@ -26,14 +26,14 @@ module BlockIo
         # P2WPKH-over-P2SH addresses
         # P2WPKH addresses
         
-        pub_key = Bitcoin::Key.new(:pubkey => input_address_data['public_keys'].first, :key_type => :compressed)
+        pub_key = Bitcoin::Key.new(:pubkey => input_address_data['public_keys'].first, :key_type => 0x01) # compressed
         script = Bitcoin::Script.to_p2wpkh(pub_key.hash160)
         sighash = tx.sighash_for_input(input_index, script, amount: input_value, sig_version: :witness_v0)
         
       elsif address_type == "P2PKH" then
         # P2PKH addresses
 
-        pub_key = Bitcoin::Key.new(:pubkey => input_address_data['public_keys'].first, :key_type => :compressed)
+        pub_key = Bitcoin::Key.new(:pubkey => input_address_data['public_keys'].first, :key_type => 0x01) # compressed
         script = Bitcoin::Script.to_p2pkh(pub_key.hash160)
         sighash = tx.sighash_for_input(input_index, script)
 

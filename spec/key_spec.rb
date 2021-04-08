@@ -48,3 +48,26 @@ describe "Key.from_passphrase" do
 
 end
 
+describe "Key.generate" do
+
+  context "compressed" do
+
+    before(:each) do
+      Bitcoin.chain_params = "BTC"
+      @key = Bitcoin::Key.generate
+    end
+
+    it "compressed?" do
+      expect(@key.compressed?).to eq(true)
+    end
+    
+  end
+
+  context "uncompressed" do
+    Bitcoin.chain_params = "BTC"
+  end
+
+  it "raises_exception" do
+    expect {Bitcoin::Key.generate(0x00)}.to raise_error(RuntimeError, "key_type must always be 0x01 (compressed)")
+  end
+end

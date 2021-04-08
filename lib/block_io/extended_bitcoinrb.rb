@@ -56,7 +56,7 @@ module Bitcoin
         
         signature = ECDSA::Signature.new(r, s).to_der
         
-        public_key = Bitcoin::Key.new(priv_key: privkey.bth, key_type: :compressed).pubkey # suppress key_type != :compressed warnings
+        public_key = Bitcoin::Key.new(priv_key: privkey.bth, key_type: 0x01).pubkey # 0x01 is compressed key. suppress key_type warnings
         
         raise 'Creation of signature failed.' unless Bitcoin::Secp256k1::Ruby.verify_sig(data, signature, public_key)
         signature
@@ -70,7 +70,7 @@ module Bitcoin
     def initialize(priv_key: nil, pubkey: nil, key_type: nil, compressed: true, allow_hybrid: false)
       # override so enforce compressed keys
       
-      raise "key_type must always be compressed" unless key_type == :compressed or key_type == TYPES[:compressed]
+      raise "key_type must always be 0x01 (compressed)" unless key_type == TYPES[:compressed]
       puts "[Warning] Use key_type parameter instead of compressed. compressed parameter removed in the future." if key_type.nil? && !compressed.nil? && pubkey.nil?
       if key_type
         @key_type = key_type
