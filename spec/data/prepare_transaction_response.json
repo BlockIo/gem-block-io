@@ -2,6 +2,7 @@
   "status" : "success",
   "data" : {
     "network" : "LTCTEST",
+    "tx_type" : "basic",
     "inputs" : [
       {
         "input_index" : 0,

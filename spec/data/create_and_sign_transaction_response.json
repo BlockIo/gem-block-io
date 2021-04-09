@@ -31,5 +31,6 @@
       "public_key": "03f2e51b2f298bab1e4485d7d31a559de73fc29dced12f568e30264dbae4ec326e",
       "signature": "304402200a157f7120ac05f66ae60f7daba56e0c0b44d3a34cb2f45784efdc483c7e4f3202207aa8e3d5663c95d4479f820331c55092e0e597fb81ea14cbb9146deb46715357"
     }
-  ]
+  ],
+  "tx_type" : "basic"
 }
