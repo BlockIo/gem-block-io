@@ -119,6 +119,7 @@
     "user_key" : {
       "public_key" : "03f2e51b2f298bab1e4485d7d31a559de73fc29dced12f568e30264dbae4ec326e",
       "encrypted_passphrase" : "3FmrhIEX7tV46alsRuMonmLHPIX7hBSMCQmZKcVt2a3pcgDG4cmwLjaiDPJzIAPtBI9NZ5ybnO824EOzreak9bxzPhg/D2CFhGZAl+Iq3RzURwhY6kQ6kdtj5G///5UlJgY17SQa8/i+TXwLj5/AOfNIfMU0QUxVzSsfAJO3VfH9QioLnUJW5ZH1OkSdM849"
-    }
+    },
+    "estimated_tx_size" : 791
   }
 }

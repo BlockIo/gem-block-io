@@ -24,7 +24,7 @@ module BlockIo
       @raise_exception_on_error = args[:raise_exception_on_error] || false
 
       raise Exception.new("Keys must be provided as an array.") unless @keys.is_a?(Array)
-      raise Exception.new("Keys must be BlockIo::Key objects.") unless @keys.all?{|key| key.is_a?(BlockIo::Key)}
+      raise Exception.new("Keys must be Bitcoin::Key objects.") unless @keys.all?{|key| key.is_a?(Bitcoin::Key)}
 
       # make a hash of the keys we've been given
       @keys = @keys.inject({}){|h,v| h[v.pubkey] = v; h}
@@ -49,26 +49,31 @@ module BlockIo
       raise Exception.new("Parameter keys must be symbols. For instance: :label => 'default' instead of 'label' => 'default'") unless args[0].nil? or args[0].keys.all?{|x| x.is_a?(Symbol)}
       raise Exception.new("Cannot pass PINs to any calls. PINs can only be set when initiating this library.") if !args[0].nil? and args[0].key?(:pin)
       raise Exception.new("Do not specify API Keys here. Initiate a new BlockIo object instead if you need to use another API Key.") if !args[0].nil? and args[0].key?(:api_key)
-      
-      api_call({:method_name => method_name, :params => args[0] || {}})
+
+      if method_name.eql?("prepare_sweep_transaction") then
+        # we need to ensure @network is set before we allow this
+        # we need to send only the public key, not the given private key
+        # we're sweeping from an address
+        internal_prepare_sweep_transaction(args[0], method_name)
+      else
+        api_call({:method_name => method_name, :params => args[0] || {}})
+      end
       
     end
 
     # TODO do sweep and dtrust
     
     def create_and_sign_transaction(data, keys = [])
-      # takes data from prepare_transaction
+      # takes data from prepare_transaction, prepare_dtrust_transaction, prepare_sweep_transaction
       # creates the transaction given the inputs and outputs from data
       # signs the transaction using keys (if not provided, decrypts the key using the PIN)
 
       raise "Data must be contain one or more inputs" unless data['data']['inputs'].size > 0
       raise "Data must contain one or more outputs" unless data['data']['outputs'].size > 0
       raise "Data must contain information about addresses" unless data['data']['input_address_data'].size > 0 # TODO make stricter
+      raise "Must provide keys only of type Bitcoin::Key" unless keys.size == 0 or keys.all?{|x| x.is_a?(Bitcoin::Key)}
       # TODO debug all of this
       
-      # load the chain parameters for this network
-      Bitcoin.chain_params = @network
-
       inputs = data['data']['inputs']
       outputs = data['data']['outputs']
 
@@ -97,8 +102,12 @@ module BlockIo
 
         # store this key for later use
         @keys[key.pubkey] = key
+        
       end
 
+      # store the provided keys, if any, for later use
+      keys.each{|key| @keys[key.pubkey] = key}
+      
       signatures = []
       
       if @keys.size > 0 then
@@ -128,7 +137,7 @@ module BlockIo
       end
 
       # the response for submitting the transaction
-      {:tx_hex => tx.to_hex, :signatures => signatures}
+      {:tx_type => data['data']['tx_type'], :tx_hex => tx.to_hex, :signatures => signatures}
       
     end
 
@@ -141,6 +150,24 @@ module BlockIo
     
     private
 
+    def internal_prepare_sweep_transaction(args = {}, method_name = "prepare_sweep_transaction")
+
+      # set the network first if not already known
+      api_call({:method_name => "get_balance", :params => {}}) if @network.nil?
+
+      raise Exception.new("No private_key provided.") unless args.key?(:private_key) and (args[:private_key] || "").size > 0
+
+      # ensure the private key never goes to Block.io
+      key = Key.from_wif(args[:private_key])
+      sanitized_args = args.merge({:public_key => key.pubkey})
+      sanitized_args.delete(:private_key)
+
+      @keys[key.pubkey] = key # store this in our set of keys for later use
+      
+      api_call({:method_name => method_name, :params => sanitized_args})
+      
+    end
+    
     def api_call(args)
 
       raise Exception.new("No connections left to perform API call. Please re-initialize BlockIo::Client with :pool_size greater than #{@conn.size}.") unless @conn.available > 0
@@ -156,6 +183,9 @@ module BlockIo
       raise Exception.new("#{body["data"]["error_message"]}") if !body["status"].eql?("success") and @raise_exception_on_error
 
       @network ||= body["data"]["network"] if body["data"].key?("network")
+
+      # load the chain_params for this network
+      Bitcoin.chain_params = @network unless @network.to_s.size == 0
       
       body
       

@@ -3,7 +3,6 @@ describe "Client.prepare_transaction" do
   before(:each) do
     @api_key = "0000-0000-0000-0000"
     @req_params = {:to_address => "QTLcyTFrH7T6kqUsi1VV2mJVXmX3AmwUNH", :amounts => "0.248"}
-    Bitcoin.chain_params = "LTCTEST"
     @headers = {
       'Accept' => 'application/json',
       'Connection' => 'Keep-Alive',
@@ -21,15 +20,14 @@ describe "Client.prepare_transaction" do
 
     @create_and_sign_transaction_response = File.new("spec/data/create_and_sign_transaction_response.json").read
     
-    @insecure_pin_valid = "d1650160bd8d2bb32bebd139d0063eb6063ffa2f9e4501ad"
-    @insecure_pin_invalid = "blockiotestpininsecure"    
+    @insecure_pin_valid = "d1650160bd8d2bb32bebd139d0063eb6063ffa2f9e4501ad" # still insecure, don't use this!
+    @insecure_pin_invalid = "blockiotestpininsecure"
   end
 
   context "pin_valid" do
 
     before(:each) do
 
-      Bitcoin.chain_params = "LTCTEST"
       @blockio = BlockIo::Client.new(:api_key => @api_key, :pin => @insecure_pin_valid)
       
     end
@@ -50,7 +48,6 @@ describe "Client.prepare_transaction" do
 
     before(:each) do
 
-      Bitcoin.chain_params = "LTCTEST"
       @blockio = BlockIo::Client.new(:api_key => @api_key, :pin => @insecure_pin_invalid)
       
     end

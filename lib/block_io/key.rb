@@ -6,7 +6,7 @@ module BlockIo
       # returns a new key
       Bitcoin::Key.generate # compressed
     end
-    
+
     def self.from_passphrase(passphrase)
       # ATTENTION: use BlockIo::Key.new to generate new private keys. Using passphrases is not recommended due to lack of / low entropy.
       # create a private/public key pair from a given passphrase
