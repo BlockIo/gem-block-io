@@ -127,7 +127,7 @@ module BlockIo
             next unless @keys.key?(signer_public_key)
             
             signature = @keys[signer_public_key].sign(sighash_for_input).unpack("H*")[0] # in hex
-            signatures << {:input_index => i, :public_key => signer_public_key, :signature => signature}
+            signatures << {"input_index" => i, "public_key" => signer_public_key, "signature" => signature}
             
           end
 
@@ -136,8 +136,14 @@ module BlockIo
         
       end
 
+      # if we have everything we need for this transaction, just finalize the transaction
+      if Helper.allSignaturesPresent?(tx, inputs, signatures, data['data']['input_address_data']) then
+        Helper.finalizeTransaction(tx, inputs, signatures, data['data']['input_address_data'])
+        signatures = [] # no signatures left to append
+      end
+
       # the response for submitting the transaction
-      {:tx_type => data['data']['tx_type'], :tx_hex => tx.to_hex, :signatures => signatures}
+      {"tx_type" => data['data']['tx_type'], "tx_hex" => tx.to_hex, "signatures" => signatures}
       
     end
 

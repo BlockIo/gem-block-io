@@ -2,6 +2,116 @@ module BlockIo
 
   class Helper
 
+    def self.allSignaturesPresent?(tx, inputs, signatures, input_address_data)
+      # returns true if transaction has all signatures present
+      
+      all_signatures_present = false
+
+      inputs.each do |input|
+        # check if each input has its required signatures
+        
+        spending_address = input['spending_address']
+        current_input_address_data = input_address_data.detect{|x| x['address'] == spending_address}
+        required_signatures = current_input_address_data['required_signatures']
+        public_keys = current_input_address_data['public_keys']
+
+        signatures_present = signatures.map{|x| x if x['input_index'] == input['input_index']}.compact.inject({}){|h,v| h[v['public_key']] = v['signature']; h}
+
+        # break the loop if all signatures are not present for this input
+        all_signatures_present = (signatures_present.keys.size >= required_signatures)
+        break unless all_signatures_present
+        
+      end
+
+      all_signatures_present
+
+    end
+    
+    def self.finalizeTransaction(tx, inputs, signatures, input_address_data)
+      # append signatures to the transaction and return its hexadecimal representation
+
+      inputs.each do |input|
+        # for each input
+
+        signatures_present = signatures.map{|x| x if x['input_index'] == input['input_index']}.compact.inject({}){|h,v| h[v['public_key']] = v['signature']; h}
+        address_data = input_address_data.detect{|x| x['address'] == input['spending_address']} # contains public keys (ordered) and the address type
+        input_index = input['input_index']
+        
+        if ['P2PKH'].include?(address_data['address_type']) then
+          # just a P2PKH input
+          
+          current_public_key = address_data['public_keys'][0]
+          current_signature = signatures_present[current_public_key]
+          tx.in[input_index].script_sig << ([current_signature].pack("H*") + [Bitcoin::SIGHASH_TYPE[:all]].pack('C'))
+          tx.in[input_index].script_sig << [current_public_key].pack("H*")
+          
+        elsif ['P2SH'].include?(address_data['address_type']) then
+          # just a P2SH input
+          
+          script = Bitcoin::Script.to_p2sh_multisig_script(address_data['required_signatures'], address_data['public_keys'])
+
+          i = 0
+          while i < address_data['required_signatures'] do
+            # append signatures using SIGHASH[ALL] in correct order of public keys
+            
+            current_signature = signatures_present[address_data['public_keys'][i]]
+            tx.in[input_index].script_sig << ([current_signature].pack("H*") + [Bitcoin::SIGHASH_TYPE[:all]].pack('C'))
+
+            i += 1 # next public key
+          end
+
+          tx.in[input_index].script_sig << script.last.to_payload
+          
+        elsif ['P2WPKH', 'P2WPKH-over-P2SH'].include?(address_data['address_type']) then
+          # a P2WPKH input, or a P2WPKH-over-P2SH input
+
+          current_public_key = address_data['public_keys'][0]
+          current_signature = signatures_present[current_public_key]
+
+          # P2WPKH does not have a blank push to init the stack, only scripthash witnesses do
+          tx.in[input_index].script_witness.stack << ([current_signature].pack("H*") + [Bitcoin::SIGHASH_TYPE[:all]].pack('C'))
+          tx.in[input_index].script_witness.stack << [current_public_key].pack("H*")
+
+          # P2WPKH-over-P2SH required script_sig still
+          tx.in[input_index].script_sig << (
+            Bitcoin::Script.to_p2wpkh(
+              Bitcoin::Key.new(:pubkey => current_public_key, :key_type => 0x01).hash160 # hash160 of the compressed pubkey
+            ).to_payload
+          ) if address_data['address_type'].end_with?("P2SH")
+                    
+        elsif ['WITNESS_V0', 'P2WSH-over-P2SH'].include?(address_data['address_type']) then
+        # P2WSH or P2WSH-over-P2SH input
+
+          script = Bitcoin::Script.to_p2sh_multisig_script(address_data['required_signatures'], address_data['public_keys'])
+
+          tx.in[input_index].script_witness.stack << '' # blank push for scripthash witnesses
+          
+          i = 0
+          while i < address_data['required_signatures'] do
+            # append signatures using SIGHASH[ALL] in correct order of public keys
+            
+            current_signature = signatures_present[address_data['public_keys'][i]]
+            tx.in[input_index].script_witness.stack << ([current_signature].pack("H*") + [Bitcoin::SIGHASH_TYPE[:all]].pack('C'))
+            
+            i += 1 # next public key
+            
+          end
+
+          tx.in[input_index].script_witness.stack << script.last.to_payload
+
+          # P2WSH-over-P2SH needs script_sig populated still
+          tx.in[input_index].script_sig << Bitcoin::Script.to_p2wsh(script.last).to_payload if address_data['address_type'].end_with?("P2SH")
+          
+        else
+          raise "Unrecognized input address: #{address_data['address_type']}"
+        end
+        
+      end
+
+      tx.to_hex
+      
+    end
+    
     def self.getSigHashForInput(tx, input_index, input_data, input_address_data)
       # returns the sighash for the given input in bytes
       

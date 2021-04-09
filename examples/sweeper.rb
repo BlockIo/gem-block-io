@@ -15,14 +15,12 @@ begin
   
   prepare_transaction_response = blockio.prepare_sweep_transaction(:to_address => to_address, :private_key => private_key)
   
-  raise response["data"]["error_message"] unless response["status"].eql?("success")
+  raise prepare_transaction_response["data"]["error_message"] unless prepare_transaction_response["status"].eql?("success")
   
   puts JSON.pretty_generate(prepare_transaction_response)
   puts " -- "
   
   signed_transaction_response = blockio.create_and_sign_transaction(prepare_transaction_response)
-  
-  raise response["data"]["error_message"] unless response["status"].eql?("success")
   
   puts JSON.pretty_generate(signed_transaction_response)
   puts " -- "
