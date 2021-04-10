@@ -15,7 +15,7 @@ describe "Client.prepare_sweep_transaction" do
     }
 
     # since @network won't be set, the library will call get_balance first on prepare_sweep_transaction
-    @get_balance_response = File.new("spec/data/get_balance_response.json").read
+    @get_balance_response = File.new("spec/test-cases/json/get_balance_response.json").read
     @stub_network = stub_request(:post, "https://block.io/api/v2/get_balance").
                       with(
                         body: {:api_key => @api_key}.to_json,
@@ -30,14 +30,14 @@ describe "Client.prepare_sweep_transaction" do
 
       @blockio = BlockIo::Client.new(:api_key => @api_key)
       
-      @prepare_sweep_transaction_response_p2pkh = File.new("spec/data/prepare_sweep_transaction_response_p2pkh.json").read
+      @prepare_sweep_transaction_response_p2pkh = File.new("spec/test-cases/json/prepare_sweep_transaction_response_p2pkh.json").read
       @stub1 = stub_request(:post, "https://block.io/api/v2/prepare_sweep_transaction").
                  with(
                    body: @req_params.merge({:api_key => @api_key}).to_json,
                    headers: @headers).
                  to_return(status: 200, body: @prepare_sweep_transaction_response_p2pkh, headers: {})
       
-      @create_and_sign_transaction_response_sweep_p2pkh = File.new("spec/data/create_and_sign_transaction_response_sweep_p2pkh.json").read
+      @create_and_sign_transaction_response_sweep_p2pkh = File.new("spec/test-cases/json/create_and_sign_transaction_response_sweep_p2pkh.json").read
       
     end
     
@@ -59,14 +59,14 @@ describe "Client.prepare_sweep_transaction" do
 
       @blockio = BlockIo::Client.new(:api_key => @api_key)
       
-      @prepare_sweep_transaction_response_p2wpkh_over_p2sh = File.new("spec/data/prepare_sweep_transaction_response_p2wpkh_over_p2sh.json").read
+      @prepare_sweep_transaction_response_p2wpkh_over_p2sh = File.new("spec/test-cases/json/prepare_sweep_transaction_response_p2wpkh_over_p2sh.json").read
       @stub1 = stub_request(:post, "https://block.io/api/v2/prepare_sweep_transaction").
                  with(
                    body: @req_params.merge({:api_key => @api_key}).to_json,
                    headers: @headers).
                  to_return(status: 200, body: @prepare_sweep_transaction_response_p2wpkh_over_p2sh, headers: {})
       
-      @create_and_sign_transaction_response_sweep_p2wpkh_over_p2sh = File.new("spec/data/create_and_sign_transaction_response_sweep_p2wpkh_over_p2sh.json").read
+      @create_and_sign_transaction_response_sweep_p2wpkh_over_p2sh = File.new("spec/test-cases/json/create_and_sign_transaction_response_sweep_p2wpkh_over_p2sh.json").read
       
     end
     
@@ -88,14 +88,14 @@ describe "Client.prepare_sweep_transaction" do
 
       @blockio = BlockIo::Client.new(:api_key => @api_key)
       
-      @prepare_sweep_transaction_response_p2wpkh = File.new("spec/data/prepare_sweep_transaction_response_p2wpkh.json").read
+      @prepare_sweep_transaction_response_p2wpkh = File.new("spec/test-cases/json/prepare_sweep_transaction_response_p2wpkh.json").read
       @stub1 = stub_request(:post, "https://block.io/api/v2/prepare_sweep_transaction").
                  with(
                    body: @req_params.merge({:api_key => @api_key}).to_json,
                    headers: @headers).
                  to_return(status: 200, body: @prepare_sweep_transaction_response_p2wpkh, headers: {})
       
-      @create_and_sign_transaction_response_sweep_p2wpkh = File.new("spec/data/create_and_sign_transaction_response_sweep_p2wpkh.json").read
+      @create_and_sign_transaction_response_sweep_p2wpkh = File.new("spec/test-cases/json/create_and_sign_transaction_response_sweep_p2wpkh.json").read
       
     end
     
