@@ -31,37 +31,35 @@ module Bitcoin
     module Ruby
 
       module_function
-      
+
       def sign_ecdsa(data, privkey, extra_entropy)
         privkey = privkey.htb
         private_key = ECDSA::Format::IntegerOctetString.decode(privkey)
         extra_entropy ||= ''
         nonce = RFC6979.generate_rfc6979_nonce(privkey + data, extra_entropy)
-        
+
         # port form ecdsa gem.
         r_point = GROUP.new_point(nonce)
-        
+
         point_field = ECDSA::PrimeField.new(GROUP.order)
         r = point_field.mod(r_point.x)
         return nil if r.zero?
-        
+
         e = ECDSA.normalize_digest(data, GROUP.bit_length)
         s = point_field.mod(point_field.inverse(nonce) * (e + r * private_key))
-        
+
         if s > (GROUP.order / 2) # convert low-s
           s = GROUP.order - s
         end
-        
+
         return nil if s.zero?
-        
+
         signature = ECDSA::Signature.new(r, s).to_der
-        
-        public_key = Bitcoin::Key.new(priv_key: privkey.bth, key_type: 0x01).pubkey # 0x01 is compressed key. suppress key_type warnings
-        
+        public_key = Bitcoin::Key.new(priv_key: privkey.bth, :key_type => Bitcoin::Key::TYPES[:compressed]).pubkey # get rid of the key_type warning
         raise 'Creation of signature failed.' unless Bitcoin::Secp256k1::Ruby.verify_sig(data, signature, public_key)
         signature
       end
-            
+      
     end
   end
   
@@ -70,7 +68,7 @@ module Bitcoin
     def initialize(priv_key: nil, pubkey: nil, key_type: nil, compressed: true, allow_hybrid: false)
       # override so enforce compressed keys
       
-      raise "key_type must always be 0x01 (compressed)" unless key_type == TYPES[:compressed]
+      raise "key_type must always be Bitcoin::KEY::TYPES[:compressed]" unless key_type == TYPES[:compressed]
       puts "[Warning] Use key_type parameter instead of compressed. compressed parameter removed in the future." if key_type.nil? && !compressed.nil? && pubkey.nil?
       if key_type
         @key_type = key_type
@@ -90,9 +88,13 @@ module Bitcoin
       end
       raise ArgumentError, Errors::Messages::INVALID_PUBLIC_KEY unless fully_valid_pubkey?(allow_hybrid)
     end
-    
+
+    def public_key
+      @pubkey
+    end
+
   end
-  
+
 end
 
 module Bech32

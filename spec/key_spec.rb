@@ -1,3 +1,22 @@
+describe "Key.from_priv_key_hex" do
+  # generates faulty signature with Native Ruby bitcoinrb 0.7.0 unless the private key is padded to be 64 char hex (below is 63 chars)
+  
+  context "6c1cefdfd9187b36b36c3698c1362642083dcc1941dc76d751481d3aa29ca65" do
+
+    before(:each) do
+      @key = BlockIo::Key.from_priv_key_hex("6c1cefdfd9187b36b36c3698c1362642083dcc1941dc76d751481d3aa29ca65")
+      @data_to_sign = "c290b6e7e43ae83124499a06d1c0f8d385cc86f28aad77260599654061847547"
+    end
+
+    it "succeeds" do
+      @signature = @key.sign([@data_to_sign].pack("H*"))
+      expect(@signature.unpack("H*")[0]).to eq("304402204ad00b8fd0918e5a0e9ec353a32139265ab3e633748dc85494561f1cee748551022073b229aad08f7bf62020300a34df587336a30784b29439abb405435413c961f4")
+      expect(@key.verify(@signature, [@data_to_sign].pack("H*"))).to eq(true)
+    end
+    
+  end
+  
+end
 
 describe "Key.from_wif" do
 
@@ -68,6 +87,6 @@ describe "Key.generate" do
   end
 
   it "raises_exception" do
-    expect {Bitcoin::Key.generate(0x00)}.to raise_error(RuntimeError, "key_type must always be 0x01 (compressed)")
+    expect {Bitcoin::Key.generate(0x00)}.to raise_error(RuntimeError, "key_type must always be Bitcoin::KEY::TYPES[:compressed]")
   end
 end
