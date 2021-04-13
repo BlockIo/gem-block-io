@@ -70,7 +70,7 @@ module BlockIo
             Bitcoin::Script.to_p2wpkh(
               Bitcoin::Key.new(:pubkey => current_public_key, :key_type => Bitcoin::Key::TYPES[:compressed]).hash160 # hash160 of the compressed pubkey
             ).to_payload
-          ) if address_data['address_type'].end_with?("P2WPKH-over-P2SH")
+          ) if address_data['address_type'] == "P2WPKH-over-P2SH"
                     
         elsif ['P2SH', 'WITNESS_V0', 'P2WSH-over-P2SH'].include?(address_data['address_type']) then
           # P2SH will use script_sig as script_stack
@@ -98,7 +98,7 @@ module BlockIo
           script_stack << script.last.to_payload
 
           # P2WSH-over-P2SH needs script_sig populated still
-          tx.in[input_index].script_sig << Bitcoin::Script.to_p2wsh(script.last).to_payload if address_data['address_type'].end_with?("P2WSH-over-P2SH")
+          tx.in[input_index].script_sig << Bitcoin::Script.to_p2wsh(script.last).to_payload if address_data['address_type'] == "P2WSH-over-P2SH"
           
         else
           raise "Unrecognized input address: #{address_data['address_type']}"

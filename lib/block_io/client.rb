@@ -61,8 +61,6 @@ module BlockIo
       
     end
 
-    # TODO do sweep and dtrust
-    
     def create_and_sign_transaction(data, keys = [])
       # takes data from prepare_transaction, prepare_dtrust_transaction, prepare_sweep_transaction
       # creates the transaction given the inputs and outputs from data
@@ -147,13 +145,6 @@ module BlockIo
       
     end
 
-    def submit_transaction(data)
-      # submits minimal data from create_and_sign_transaction's response
-
-      api_call({:method_name => method_name, :params => {:transaction_data => Oj.dump(data)}})
-      
-    end
-    
     private
 
     def internal_prepare_sweep_transaction(args = {}, method_name = "prepare_sweep_transaction")
