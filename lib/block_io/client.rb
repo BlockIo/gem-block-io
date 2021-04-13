@@ -137,7 +137,7 @@ module BlockIo
       # if we have everything we need for this transaction, just finalize the transaction
       if Helper.allSignaturesPresent?(tx, inputs, signatures, data['data']['input_address_data']) then
         Helper.finalizeTransaction(tx, inputs, signatures, data['data']['input_address_data'])
-        signatures = [] # no signatures left to append
+        signatures = nil # no signatures left to append
       end
 
       # the response for submitting the transaction
