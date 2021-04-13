@@ -137,11 +137,11 @@ module BlockIo
       # if we have everything we need for this transaction, just finalize the transaction
       if Helper.allSignaturesPresent?(tx, inputs, signatures, data['data']['input_address_data']) then
         Helper.finalizeTransaction(tx, inputs, signatures, data['data']['input_address_data'])
-        signatures = nil # no signatures left to append
+        signatures = [] # no signatures left to append
       end
 
       # the response for submitting the transaction
-      {"tx_type" => data['data']['tx_type'], "tx_hex" => tx.to_hex, "signatures" => signatures}
+      {"tx_type" => data['data']['tx_type'], "tx_hex" => tx.to_hex, "signatures" => (signatures.size == 0 ? nil : signatures)}
       
     end
 
