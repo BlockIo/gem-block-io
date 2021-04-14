@@ -32,9 +32,10 @@ It's super easy to get started. In your Ruby shell ($ irb), for example, do this
     require 'block_io'
     blockio = BlockIo::Client.new(:api_key => "API KEY", :pin => "SECRET PIN")
 
-If you do not have your PIN, or just wish to use your private key backup directly, do this:
+If you do not have your PIN, or just wish to use your private key backup(s) directly, do this:
 
-    blockio = BlockIo::Client.new(:api_key => "API KEY", :keys => [BlockIo::Key.from_wif("PRIVATE KEY BACKUP")])
+    blockio = BlockIo::Client.new(:api_key => "API KEY")
+    blockio.prepare_transaction(..., :keys => [BlockIo::Key.from_wif("PRIVATE_KEY_BACKUP_IN_WIF")])
 
 And you're good to go:
 
