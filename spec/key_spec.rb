@@ -1,10 +1,10 @@
-describe "Key.from_priv_key_hex" do
+describe "Key.from_private_key_hex" do
   # generates faulty signature with Native Ruby bitcoinrb 0.7.0 unless the private key is padded to be 64 char hex (below is 63 chars)
   
   context "6c1cefdfd9187b36b36c3698c1362642083dcc1941dc76d751481d3aa29ca65" do
 
     before(:each) do
-      @key = BlockIo::Key.from_priv_key_hex("6c1cefdfd9187b36b36c3698c1362642083dcc1941dc76d751481d3aa29ca65")
+      @key = BlockIo::Key.from_private_key_hex("6c1cefdfd9187b36b36c3698c1362642083dcc1941dc76d751481d3aa29ca65")
       @data_to_sign = "c290b6e7e43ae83124499a06d1c0f8d385cc86f28aad77260599654061847547"
     end
 
@@ -28,11 +28,11 @@ describe "Key.from_wif" do
     end
     
     it "match(public_key)" do
-      expect(@key_low_r.pubkey).to eq("024988bae7e0ade83cb1b6eb0fd81e6161f6657ad5dd91d216fbeab22aea3b61a0")
+      expect(@key_low_r.public_key_hex).to eq("024988bae7e0ade83cb1b6eb0fd81e6161f6657ad5dd91d216fbeab22aea3b61a0")
     end
     
     it "match(private_key)" do
-      expect(@key_low_r.priv_key).to eq("833e2256c42b4a41ee0a6ee284c39cf8e1978bc8e878eb7ae87803e22d48caa9")
+      expect(@key_low_r.private_key_hex).to eq("833e2256c42b4a41ee0a6ee284c39cf8e1978bc8e878eb7ae87803e22d48caa9")
     end
     
     it "sign_with_low_r" do
@@ -52,11 +52,11 @@ describe "Key.from_passphrase" do
     end
 
     it "match(public_key)" do
-      expect(@key_low_r.pubkey).to eq("02953b9dfcec241eec348c12b1db813d3cd5ec9d93923c04d2fa3832208b8c0f84")
+      expect(@key_low_r.public_key_hex).to eq("02953b9dfcec241eec348c12b1db813d3cd5ec9d93923c04d2fa3832208b8c0f84")
     end
 
     it "match(private_key)" do
-      expect(@key_low_r.priv_key).to eq("5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953")
+      expect(@key_low_r.private_key_hex).to eq("5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953")
     end
     
     it "sign_with_low_r" do

@@ -27,7 +27,7 @@ module BlockIo
       raise Exception.new("Keys must be Bitcoin::Key objects.") unless @keys.all?{|key| key.is_a?(Bitcoin::Key)}
 
       # make a hash of the keys we've been given
-      @keys = @keys.inject({}){|h,v| h[v.pubkey] = v; h}
+      @keys = @keys.inject({}){|h,v| h[v.public_key_hex] = v; h}
       
       raise Exception.new("Must specify hostname, port, username, password if using a proxy.") if @proxy.keys.size > 0 and [:hostname, :port, :username, :password].any?{|x| !@proxy.key?(x)}
 
@@ -96,15 +96,15 @@ module BlockIo
         raise Exception.new("PIN not set and no keys provided. Cannot sign transaction.") unless @encryption_key or @keys.size > 0
         
         key = Helper.extractKey(encrypted_key['encrypted_passphrase'], @encryption_key)
-        raise Exception.new("Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.") unless key.pubkey.eql?(encrypted_key["public_key"])
+        raise Exception.new("Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.") unless key.public_key_hex.eql?(encrypted_key["public_key"])
 
         # store this key for later use
-        @keys[key.pubkey] = key
+        @keys[key.public_key_hex] = key
         
       end
 
       # store the provided keys, if any, for later use
-      keys.each{|key| @keys[key.pubkey] = key}
+      keys.each{|key| @keys[key.public_key_hex] = key}
       
       signatures = []
       
@@ -156,10 +156,10 @@ module BlockIo
 
       # ensure the private key never goes to Block.io
       key = Key.from_wif(args[:private_key])
-      sanitized_args = args.merge({:public_key => key.pubkey})
+      sanitized_args = args.merge({:public_key => key.public_key_hex})
       sanitized_args.delete(:private_key)
 
-      @keys[key.pubkey] = key # store this in our set of keys for later use
+      @keys[key.public_key_hex] = key # store this in our set of keys for later use
       
       api_call({:method_name => method_name, :params => sanitized_args})
       

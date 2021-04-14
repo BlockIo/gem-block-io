@@ -89,10 +89,14 @@ module Bitcoin
       raise ArgumentError, Errors::Messages::INVALID_PUBLIC_KEY unless fully_valid_pubkey?(allow_hybrid)
     end
 
-    def public_key
+    def public_key_hex
       @pubkey
     end
 
+    def private_key_hex
+      @priv_key
+    end
+    
   end
 
 end

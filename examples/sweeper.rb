@@ -9,33 +9,26 @@ require 'block_io'
 blockio = BlockIo::Client.new(:api_key => ENV['API_KEY'])
 
 to_address = ENV['TO_ADDRESS'] # sweep coins into this address
-private_key = ENV['PRIVATE_KEY'] # private key for the address from which you wish to sweep coins
+private_key = ENV['PRIVATE_KEY'] # private key for the address from which you wish to sweep coins (WIF)
 
-begin
-  
-  prepare_transaction_response = blockio.prepare_sweep_transaction(:to_address => to_address, :private_key => private_key)
-  
-  raise prepare_transaction_response["data"]["error_message"] unless prepare_transaction_response["status"].eql?("success")
-  
-  puts JSON.pretty_generate(prepare_transaction_response)
-  puts " -- "
-  
-  signed_transaction_response = blockio.create_and_sign_transaction(prepare_transaction_response)
-  
-  puts JSON.pretty_generate(signed_transaction_response)
-  puts " -- "
-  
-  response = blockio.submit_transaction(signed_transaction_response)
-  
-  raise response["data"]["error_message"] unless response["status"].eql?("success")
-  
-  puts JSON.pretty_generate(submit_transaction_response)
-  puts " -- "
+# prepare the sweep transaction
+# you will inspect this data to ensure things are in order (the network fees you pay, the amount being swept, etc.)
+# the private key is used to determine the public key by prepare_sweep_transaction client-side
+# the private key never travels to Block.io
+prepared_transaction = blockio.prepare_sweep_transaction(:to_address => to_address, :private_key => private_key)
+puts JSON.pretty_generate(prepared_transaction)
+puts " -- "
 
-  puts "Sweep Complete: #{response['data']['amount_sent']} #{response['data']['network']} swept to #{to_address}."
-  puts "Transaction ID: #{response['data']['txid']}"
-  puts "Network Fee Incurred: #{response['data']['network_fee']} #{response['data']['network']}"
-  
-rescue Exception => e
-  puts "Sweep failed: #{e}"
-end
+# create and sign the transaction
+# the signature is from the key you provided to prepare_sweep_transaction above
+transaction_data = blockio.create_and_sign_transaction(prepared_transaction)
+puts JSON.pretty_generate(transaction_data)
+puts " -- "
+
+# submit the final transaction to Block.io for broadcast to the network, or
+# submit the transaction payload youself elsewhere (like using sendrawtransaction RPC calls with bitcoind, dogecoind, litecoind, etc.)
+response = blockio.submit_transaction(:transaction_data => transaction_data)
+puts JSON.pretty_generate(response)
+puts " -- "
+
+puts "Transaction ID: #{response['data']['txid']}"
