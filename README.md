@@ -1,6 +1,6 @@
 # BlockIo
 
-This Ruby Gem is the official reference client for the Block.io payments API. To use this, you will need the Dogecoin, Bitcoin, or Litecoin API key(s) from <a href="https://block.io" target="_blank">Block.io</a>. Go ahead, sign up :)
+This Ruby Gem is the official reference client for the Block.io's infrastructure APIs. To use this, you will need the Dogecoin, Bitcoin, or Litecoin API key(s) from <a href="https://block.io" target="_blank">Block.io</a>. Go ahead, sign up :)
 
 ## Installation
 
@@ -14,18 +14,16 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install block_io -v=2.0.0
+    $ gem install block_io -v=3.0.0
 
 ## Changelog
+*04/14/21*: BREAKING CHANGES. Version 3.0.0. Remove support for Ruby < 2.4.0. Behavior and interfaces have changed. By upgrading you'll need to revise your code and tests.
 
-*07/02/20*: BREAKING CHANGES. Version 2.0.0. Remove support for Ruby < 2.3.0. Behavior and interfaces have changed. By upgrading you'll need to revise your code and tests.  
-*05/10/19*: Prevent inadvertent passing of PINs (user error).  
-*06/25/18*: Remove support for Ruby < 1.9.3 (OpenSSL::Cipher::Cipher). Remove connection_pool dependency.  
-*01/21/15*: Added ability to sweep coins from one address to another.  
-*11/04/14*: Fix issue with nil parameters in an API call.  
-*11/03/14*: Reduce dependence on OpenSSL. PBKDF2 function is now Ruby-based. Should work well with Heroku's libraries.  
-*10/18/14*: Now using deterministic signatures (RFC6979), and BIP62 to hinder transaction malleability.  
-
+## Important Notes
+* This gem depends on the bitcoinrb gem. By using this gem, your application will load the bitcoinrb gem as well with the Bitcoin namespace. It may conflict with another gem using the same namespace.  
+* Transaction endpoints are updated as of v3.0.0: instead of using `blockio.withdraw(...)`, you will now use `blockio.prepare_transaction(...)`, `blockio.create_and_sign_transaction()`, and `blockio.submit_transaction()`.
+* See the examples/ folder for basic examples.  
+* Be careful to test thoroughly before production.  
 
 ## Usage
 
