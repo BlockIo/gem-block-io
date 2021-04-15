@@ -17,7 +17,7 @@ Or install it yourself as:
     $ gem install block_io -v=3.0.0
 
 ## Changelog
-*04/14/21*: BREAKING CHANGES. Version 3.0.0. Remove support for Ruby < 2.4.0. Behavior and interfaces have changed. By upgrading you'll need to revise your code and tests.
+*04/14/21*: BREAKING CHANGES. Version 3.0.0. Remove support for Ruby < 2.4.0, and Windows. Behavior and interfaces have changed. By upgrading you'll need to revise your code and tests.
 
 ## Important Notes
 * This gem depends on the bitcoinrb gem. By using this gem, your application will load the bitcoinrb gem as well with the Bitcoin namespace. It may conflict with another gem using the same namespace.  
