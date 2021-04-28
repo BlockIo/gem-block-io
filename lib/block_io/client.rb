@@ -65,6 +65,8 @@ module BlockIo
       # takes data from prepare_transaction, prepare_dtrust_transaction, prepare_sweep_transaction
       # creates the transaction given the inputs and outputs from data
       # signs the transaction using keys (if not provided, decrypts the key using the PIN)
+      
+      set_network(data['data']['network']) if data['data'].key?('network')
 
       raise "Data must be contain one or more inputs" unless data['data']['inputs'].size > 0
       raise "Data must contain one or more outputs" unless data['data']['outputs'].size > 0
@@ -164,6 +166,12 @@ module BlockIo
       api_call({:method_name => method_name, :params => sanitized_args})
       
     end
+
+    def set_network(network)
+      # load the chain_params for this network
+      @network ||= network
+      Bitcoin.chain_params = @network unless @network.to_s.size == 0
+    end
     
     def api_call(args)
 
@@ -179,10 +187,7 @@ module BlockIo
 
       raise Exception.new("#{body["data"]["error_message"]}") if !body["status"].eql?("success") and @raise_exception_on_error
 
-      @network ||= body["data"]["network"] if body["data"].key?("network")
-
-      # load the chain_params for this network
-      Bitcoin.chain_params = @network unless @network.to_s.size == 0
+      set_network(body['data']['network']) if body['data'].key?('network')
       
       body
       
