@@ -20,15 +20,9 @@ module BlockIo
       @version = args[:version] || 2
       @hostname = args[:hostname] || "block.io"
       @proxy = args[:proxy] || {}
-      @keys = args[:keys] || []
+      @keys = {}
       @raise_exception_on_error = args[:raise_exception_on_error] || false
 
-      raise Exception.new("Keys must be provided as an array.") unless @keys.is_a?(Array)
-      raise Exception.new("Keys must be Bitcoin::Key objects.") unless @keys.all?{|key| key.is_a?(Bitcoin::Key)}
-
-      # make a hash of the keys we've been given
-      @keys = @keys.inject({}){|h,v| h[v.public_key_hex] = v; h}
-      
       raise Exception.new("Must specify hostname, port, username, password if using a proxy.") if @proxy.keys.size > 0 and [:hostname, :port, :username, :password].any?{|x| !@proxy.key?(x)}
 
       @conn = ConnectionPool.new(:size => args[:pool_size] || 5) { http = HTTP.headers(:accept => "application/json", :user_agent => "gem:block_io:#{VERSION}");
@@ -142,6 +136,9 @@ module BlockIo
         signatures = [] # no signatures left to append
       end
 
+      # reset keys
+      @keys = {}
+      
       # the response for submitting the transaction
       {"tx_type" => data['data']['tx_type'], "tx_hex" => tx.to_hex, "signatures" => (signatures.size == 0 ? nil : signatures)}
       
