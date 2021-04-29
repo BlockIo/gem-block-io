@@ -184,8 +184,8 @@ describe "Client.create_and_sign_transaction" do
 
     it "succeeds_on_251_outputs" do
     
-      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_WITNESS_V0_3of5_251outputs.json").read)
-      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_WITNESS_V0_3of5_251outputs.json").read)
+      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_witness_v0_3of5_251outputs.json").read)
+      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_witness_v0_3of5_251outputs.json").read)
       
       actual_response = @blockio.create_and_sign_transaction(request, @private_keys.first(3))
       
@@ -195,8 +195,8 @@ describe "Client.create_and_sign_transaction" do
 
     it "succeeds_on_252_outputs" do
     
-      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_WITNESS_V0_3of5_252outputs.json").read)
-      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_WITNESS_V0_3of5_252outputs.json").read)
+      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_witness_v0_3of5_252outputs.json").read)
+      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_witness_v0_3of5_252outputs.json").read)
       
       actual_response = @blockio.create_and_sign_transaction(request, @private_keys.first(3))
       
@@ -206,8 +206,8 @@ describe "Client.create_and_sign_transaction" do
 
     it "succeeds_on_253_outputs" do
     
-      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_WITNESS_V0_3of5_253outputs.json").read)
-      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_WITNESS_V0_3of5_253outputs.json").read)
+      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_witness_v0_3of5_253outputs.json").read)
+      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_witness_v0_3of5_253outputs.json").read)
       
       actual_response = @blockio.create_and_sign_transaction(request, @private_keys.first(3))
       
@@ -260,8 +260,8 @@ describe "Client.create_and_sign_transaction" do
 
     it "succeeds_on_251_outputs" do
     
-      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_WITNESS_V0_4of5_251outputs.json").read)
-      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_WITNESS_V0_4of5_251outputs.json").read)
+      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_witness_v0_4of5_251outputs.json").read)
+      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_witness_v0_4of5_251outputs.json").read)
       
       actual_response = @blockio.create_and_sign_transaction(request, @private_keys.first(4))
       
@@ -271,8 +271,8 @@ describe "Client.create_and_sign_transaction" do
 
     it "succeeds_on_252_outputs" do
     
-      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_WITNESS_V0_4of5_252outputs.json").read)
-      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_WITNESS_V0_4of5_252outputs.json").read)
+      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_witness_v0_4of5_252outputs.json").read)
+      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_witness_v0_4of5_252outputs.json").read)
       
       actual_response = @blockio.create_and_sign_transaction(request, @private_keys.first(4))
       
@@ -282,8 +282,8 @@ describe "Client.create_and_sign_transaction" do
 
     it "succeeds_on_253_outputs" do
     
-      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_WITNESS_V0_4of5_253outputs.json").read)
-      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_WITNESS_V0_4of5_253outputs.json").read)
+      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_dtrust_transaction_response_witness_v0_4of5_253outputs.json").read)
+      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_dtrust_witness_v0_4of5_253outputs.json").read)
       
       actual_response = @blockio.create_and_sign_transaction(request, @private_keys.first(4))
       
