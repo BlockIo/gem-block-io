@@ -12,13 +12,22 @@ puts blockio.get_balance
 puts blockio.network
 
 # create the address if it doesn't exist
-puts blockio.get_new_address(:label => 'testDest')
+begin
+  puts blockio.get_new_address(:label => 'testDest')
+rescue BlockIo::APIException => e
+  puts e.to_s
+end
 puts " -- "
 
 # retrieve unspent outputs and other relevant data to create and sign the transaction
 # you will inspect the prepared transaction for things like network fees being paid, block.io fees being paid, validating what destination addresses receive how much, etc.
 prepared_transaction = blockio.prepare_transaction(:to_label => 'testDest', :amount => '0.012345')
 puts JSON.pretty_generate(prepared_transaction)
+puts " -- "
+
+# a summary of what's in the prepared transaction
+# for in-depth review of the transaction, look at the prepared_transaction object yourself
+puts JSON.pretty_generate(blockio.summarize_prepared_transaction(prepared_transaction))
 puts " -- "
 
 # once satisfied with the prepared transaction, create and sign it

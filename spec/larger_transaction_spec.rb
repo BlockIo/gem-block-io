@@ -6,7 +6,7 @@ describe "Client.create_and_sign_transaction" do
     @private_keys = ["b515fd806a662e061b488e78e5d0c2ff46df80083a79818e166300666385c0a2",
                      "1584b821c62ecdc554e185222591720d6fe651ed1b820d83f92cdc45c5e21f",
                      "2f9090b8aa4ddb32c3b0b8371db1b50e19084c720c30db1d6bb9fcd3a0f78e61",
-                     "6c1cefdfd9187b36b36c3698c1362642083dcc1941dc76d751481d3aa29ca65"].map{|x| BlockIo::Key.from_private_key_hex(x)}
+                     "6c1cefdfd9187b36b36c3698c1362642083dcc1941dc76d751481d3aa29ca65"]
   end
 
   context "dtrust_p2sh_3of5_keys" do

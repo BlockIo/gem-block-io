@@ -21,7 +21,6 @@ module BlockIo
       @hostname = args[:hostname] || "block.io"
       @proxy = args[:proxy] || {}
       @keys = {}
-      @raise_exception_on_error = args[:raise_exception_on_error] || false
 
       raise Exception.new("Must specify hostname, port, username, password if using a proxy.") if @proxy.keys.size > 0 and [:hostname, :port, :username, :password].any?{|x| !@proxy.key?(x)}
 
@@ -55,6 +54,42 @@ module BlockIo
       
     end
 
+    def summarize_prepared_transaction(data)
+      # takes the response from prepare_transaction/prepare_dtrust_transaction/prepare_sweep_transaction
+      # returns the network fee being paid, the blockio fee being paid, amounts being sent
+
+      input_sum = data['data']['inputs'].map{|input| BigDecimal(input['input_value'])}.inject(:+)
+
+      output_values = [BigDecimal(0)]
+      blockio_fees = [BigDecimal(0)]
+      change_amounts = [BigDecimal(0)]
+
+      data['data']['outputs'].each do |output|
+        if output['output_category'] == 'blockio-fee' then
+          blockio_fees << BigDecimal(output['output_value'])
+        elsif output['output_category'] == 'change' then
+          change_amounts << BigDecimal(output['output_value'])
+        else
+          # user-specified
+          output_values << BigDecimal(output['output_value'])
+        end
+      end
+      
+      output_sum = output_values.inject(:+)
+      blockio_fee = blockio_fees.inject(:+)
+      change_amount = change_amounts.inject(:+)
+      
+      network_fee = input_sum - output_sum - blockio_fee - change_amount
+
+      {
+        'network' => data['data']['network'],
+        'network_fee' => '%0.8f' % network_fee,
+        "blockio_fee" => '%0.8f' % blockio_fee,
+        "total_amount_to_send" => '%0.8f' % output_sum
+      }
+      
+    end
+    
     def create_and_sign_transaction(data, keys = [])
       # takes data from prepare_transaction, prepare_dtrust_transaction, prepare_sweep_transaction
       # creates the transaction given the inputs and outputs from data
@@ -65,7 +100,9 @@ module BlockIo
       raise "Data must be contain one or more inputs" unless data['data']['inputs'].size > 0
       raise "Data must contain one or more outputs" unless data['data']['outputs'].size > 0
       raise "Data must contain information about addresses" unless data['data']['input_address_data'].size > 0 # TODO make stricter
-      raise "Must provide keys only of type Bitcoin::Key" unless keys.size == 0 or keys.all?{|x| x.is_a?(Bitcoin::Key)}
+
+      private_keys = keys.map{|x| Key.from_private_key_hex(x)}
+
       # TODO debug all of this
       
       inputs = data['data']['inputs']
@@ -82,6 +119,11 @@ module BlockIo
       outputs.each do |output|
         tx.out << Bitcoin::TxOut.new(:value => (BigDecimal(output['output_value']) * BigDecimal(100000000)).to_i, :script_pubkey => Bitcoin::Script.parse_from_addr(output['receiving_address']))
       end
+
+
+      # some protection against misbehaving machines and/or code
+      raise Exception.new("Expected unsigned transaction ID mismatch. Please report this to support@block.io.") unless (data['data']['expected_unsigned_txid'].nil? or
+                                                                                                                        data['data']['expected_unsigned_txid'] == tx.txid)
 
       # extract key
       encrypted_key = data['data']['user_key']
@@ -100,7 +142,7 @@ module BlockIo
       end
 
       # store the provided keys, if any, for later use
-      keys.each{|key| @keys[key.public_key_hex] = key}
+      private_keys.each{|key| @keys[key.public_key_hex] = key}
       
       signatures = []
       
@@ -182,7 +224,13 @@ module BlockIo
         body = {"status" => "fail", "data" => {"error_message" => "Unknown error occurred. Please report this to support@block.io. Status #{response.code}."}}
       end
 
-      raise Exception.new("#{body["data"]["error_message"]}") if !body["status"].eql?("success") and @raise_exception_on_error
+      if !body["status"].eql?("success") then
+        # raise an exception on error for easy handling
+        # user can extract raw response using e.raw_data
+        e = APIException.new("#{body["data"]["error_message"]}")
+        e.set_raw_data(body)
+        raise e
+      end
 
       set_network(body['data']['network']) if body['data'].key?('network')
       

@@ -44,10 +44,9 @@ describe "Client.prepare_dtrust_transaction" do
         
         expect(@stub1).to have_been_requested.times(1)
         
-        # network has been set at this point, so initiating keys will work
-        keys = @private_keys.first(3).map{|x| BlockIo::Key.from_private_key_hex(x)}
-        
-        expect(@blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_p2sh), keys)).to eq(Oj.load(@create_and_sign_transaction_response_dtrust_p2sh_3_of_5_keys))
+        expect(
+          @blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_p2sh), @private_keys.first(3))
+        ).to eq(Oj.load(@create_and_sign_transaction_response_dtrust_p2sh_3_of_5_keys))
 
       end
     end
@@ -59,10 +58,7 @@ describe "Client.prepare_dtrust_transaction" do
         
         expect(@stub1).to have_been_requested.times(1)
         
-        # network has been set at this point, so initiating keys will work
-        keys = @private_keys.first(4).map{|x| BlockIo::Key.from_private_key_hex(x)}
-        
-        expect(@blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_p2sh), keys)).to eq(Oj.load(@create_and_sign_transaction_response_dtrust_p2sh_4_of_5_keys))
+        expect(@blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_p2sh), @private_keys)).to eq(Oj.load(@create_and_sign_transaction_response_dtrust_p2sh_4_of_5_keys))
 
       end
     end
@@ -95,11 +91,8 @@ describe "Client.prepare_dtrust_transaction" do
         
         expect(@stub1).to have_been_requested.times(1)
         
-        # network has been set at this point, so initiating keys will work
-        keys = @private_keys.first(3).map{|x| BlockIo::Key.from_private_key_hex(x)}
-        
         expect(
-          @blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_p2wsh_over_p2sh), keys)
+          @blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_p2wsh_over_p2sh), @private_keys.first(3))
         ).to eq(Oj.load(@create_and_sign_transaction_response_dtrust_p2wsh_over_p2sh_3_of_5_keys))
 
       end
@@ -112,11 +105,8 @@ describe "Client.prepare_dtrust_transaction" do
         
         expect(@stub1).to have_been_requested.times(1)
         
-        # network has been set at this point, so initiating keys will work
-        keys = @private_keys.first(4).map{|x| BlockIo::Key.from_private_key_hex(x)}
-        
         expect(
-          @blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_p2wsh_over_p2sh), keys)
+          @blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_p2wsh_over_p2sh), @private_keys)
         ).to eq(Oj.load(@create_and_sign_transaction_response_dtrust_p2wsh_over_p2sh_4_of_5_keys))
 
       end
@@ -150,11 +140,8 @@ describe "Client.prepare_dtrust_transaction" do
         
         expect(@stub1).to have_been_requested.times(1)
         
-        # network has been set at this point, so initiating keys will work
-        keys = @private_keys.first(3).map{|x| BlockIo::Key.from_private_key_hex(x)}
-        
         expect(
-          @blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_witness_v0), keys)
+          @blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_witness_v0), @private_keys.first(3))
         ).to eq(Oj.load(@create_and_sign_transaction_response_dtrust_witness_v0_3_of_5_keys))
 
       end
@@ -167,11 +154,8 @@ describe "Client.prepare_dtrust_transaction" do
         
         expect(@stub1).to have_been_requested.times(1)
         
-        # network has been set at this point, so initiating keys will work
-        keys = @private_keys.first(4).map{|x| BlockIo::Key.from_private_key_hex(x)}
-        
         expect(
-          @blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_witness_v0), keys)
+          @blockio.create_and_sign_transaction(Oj.load(@prepare_dtrust_transaction_response_witness_v0), @private_keys)
         ).to eq(Oj.load(@create_and_sign_transaction_response_dtrust_witness_v0_4_of_5_keys))
 
       end
