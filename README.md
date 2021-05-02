@@ -21,7 +21,7 @@ Or install it yourself as:
 
 ## Important Notes
 * This gem depends on the bitcoinrb gem. By using this gem, your application will load the bitcoinrb gem as well with the Bitcoin namespace. It may conflict with another gem using the same namespace.  
-* Transaction endpoints are updated as of v3.0.0: instead of using `blockio.withdraw(...)`, you will now use `blockio.prepare_transaction(...)`, `blockio.summarize_prepared_transaction(...)`, `blockio.create_and_sign_transaction(...)`, and `blockio.submit_transaction(..)`.
+* Transaction endpoints are updated as of v3.0.0.
 * See the examples/ folder for basic examples.
 * Be careful to test thoroughly before production.  
 * Use of this software is subject to its LICENSE.  
@@ -37,7 +37,7 @@ If you do not have your PIN, or just wish to use your private key backup(s) dire
 
     blockio = BlockIo::Client.new(:api_key => "API KEY")
     blockio.get_balance
-    blockio.prepare_transaction(..., :keys => [BlockIo::Key.from_wif("PRIVATE_KEY_BACKUP_IN_WIF")])    
+    blockio.prepare_transaction(..., :keys => [BlockIo::Key.from_wif("PRIVATE_KEY_BACKUP_IN_WIF").private_key_hex])    
 
 And you're good to go:
 
