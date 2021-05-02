@@ -122,7 +122,7 @@ module BlockIo
 
 
       # some protection against misbehaving machines and/or code
-      raise Exception.new("Expected unsigned transaction ID mismatch. Please report this to support@block.io.") unless (data['data']['expected_unsigned_txid'].nil? or
+      raise Exception.new("Expected unsigned transaction ID mismatch. Please report this error to support@block.io.") unless (data['data']['expected_unsigned_txid'].nil? or
                                                                                                                         data['data']['expected_unsigned_txid'] == tx.txid)
 
       # extract key
