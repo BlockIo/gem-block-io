@@ -47,7 +47,7 @@ describe "Client.prepare_sweep_transaction" do
 
       expect(@stub1).to have_been_requested.times(1)
 
-      expect(@blockio.create_and_sign_transaction(Oj.load(@prepare_sweep_transaction_response_p2pkh))).to eq(Oj.load(@create_and_sign_transaction_response_sweep_p2pkh))
+      expect(@blockio.create_and_sign_transaction(Oj.safe_load(@prepare_sweep_transaction_response_p2pkh))).to eq(Oj.safe_load(@create_and_sign_transaction_response_sweep_p2pkh))
 
     end
 
@@ -76,7 +76,7 @@ describe "Client.prepare_sweep_transaction" do
 
       expect(@stub1).to have_been_requested.times(1)
 
-      expect(@blockio.create_and_sign_transaction(Oj.load(@prepare_sweep_transaction_response_p2wpkh_over_p2sh))).to eq(Oj.load(@create_and_sign_transaction_response_sweep_p2wpkh_over_p2sh))
+      expect(@blockio.create_and_sign_transaction(Oj.safe_load(@prepare_sweep_transaction_response_p2wpkh_over_p2sh))).to eq(Oj.safe_load(@create_and_sign_transaction_response_sweep_p2wpkh_over_p2sh))
 
     end
 
@@ -105,7 +105,7 @@ describe "Client.prepare_sweep_transaction" do
 
       expect(@stub1).to have_been_requested.times(1)
 
-      expect(@blockio.create_and_sign_transaction(Oj.load(@prepare_sweep_transaction_response_p2wpkh))).to eq(Oj.load(@create_and_sign_transaction_response_sweep_p2wpkh))
+      expect(@blockio.create_and_sign_transaction(Oj.safe_load(@prepare_sweep_transaction_response_p2wpkh))).to eq(Oj.safe_load(@create_and_sign_transaction_response_sweep_p2wpkh))
 
     end
 

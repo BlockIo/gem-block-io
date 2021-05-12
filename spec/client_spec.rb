@@ -38,7 +38,7 @@ describe "Client.prepare_transaction" do
 
       expect(@stub1).to have_been_requested.times(1)
 
-      expect(@blockio.create_and_sign_transaction(Oj.load(@prepare_transaction_response))).to eq(Oj.load(@create_and_sign_transaction_response))
+      expect(@blockio.create_and_sign_transaction(Oj.safe_load(@prepare_transaction_response))).to eq(Oj.safe_load(@create_and_sign_transaction_response))
 
     end
 
@@ -58,7 +58,7 @@ describe "Client.prepare_transaction" do
 
       expect(@stub1).to have_been_requested.times(1)
 
-      expect { @blockio.create_and_sign_transaction(Oj.load(@prepare_transaction_response)) }.to raise_error(Exception, "Invalid Secret PIN provided.")
+      expect { @blockio.create_and_sign_transaction(Oj.safe_load(@prepare_transaction_response)) }.to raise_error(Exception, "Invalid Secret PIN provided.")
       
     end
 

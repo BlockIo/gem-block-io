@@ -41,9 +41,9 @@ describe "Client" do
 
       expect(@stub1).to have_been_requested.times(1)
 
-      expect(@blockio.summarize_prepared_transaction(Oj.load(@prepare_transaction_response))).to eq(Oj.load(@summarize_prepared_transaction_response))
+      expect(@blockio.summarize_prepared_transaction(Oj.safe_load(@prepare_transaction_response))).to eq(Oj.safe_load(@summarize_prepared_transaction_response))
       
-      expect(@blockio.create_and_sign_transaction(Oj.load(@prepare_transaction_response))).to eq(Oj.load(@create_and_sign_transaction_response))
+      expect(@blockio.create_and_sign_transaction(Oj.safe_load(@prepare_transaction_response))).to eq(Oj.safe_load(@create_and_sign_transaction_response))
 
     end
 
@@ -63,7 +63,7 @@ describe "Client" do
 
       expect(@stub1).to have_been_requested.times(1)
 
-      @bad_response = Oj.load(@prepare_transaction_response)
+      @bad_response = Oj.safe_load(@prepare_transaction_response)
       @bad_response['data']['expected_unsigned_txid'] = SecureRandom.hex(32)
       
       expect{@blockio.create_and_sign_transaction(@bad_response)}.to raise_error(Exception, "Expected unsigned transaction ID mismatch. Please report this error to support@block.io.")
