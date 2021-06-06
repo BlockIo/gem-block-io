@@ -9,7 +9,9 @@ module BlockIo
       :pbkdf2_phase1_key_length => 16,
       :pbkdf2_phase2_key_length => 32,
       :aes_iv => nil,
-      :aes_cipher => "AES-256-ECB"
+      :aes_cipher => "AES-256-ECB",
+      :aes_auth_tag => nil,
+      :aes_auth_data => nil
     }
     
     def self.allSignaturesPresent?(tx, inputs, signatures, input_address_data)
@@ -176,6 +178,8 @@ module BlockIo
         algorithm[:pbkdf2_phase2_key_length] = user_key_algorithm['pbkdf2_phase2_key_length']
         algorithm[:aes_iv] = user_key_algorithm['aes_iv']
         algorithm[:aes_cipher] = user_key_algorithm['aes_cipher']
+        algorithm[:aes_auth_tag] = user_key_algorithm['aes_auth_tag']
+        algorithm[:aes_auth_data] = user_key_algorithm['aes_auth_data']
       end
 
       algorithm
@@ -193,7 +197,7 @@ module BlockIo
                                  algorithm[:pbkdf2_phase1_key_length],
                                  algorithm[:pbkdf2_phase2_key_length])
 
-      decrypted = self.decrypt(user_key['encrypted_passphrase'], aes_key, algorithm[:aes_iv], algorithm[:aes_cipher])
+      decrypted = self.decrypt(user_key['encrypted_passphrase'], aes_key, algorithm[:aes_iv], algorithm[:aes_cipher], algorithm[:aes_auth_tag], algorithm[:aes_auth_data])
       
       Key.from_passphrase(decrypted)
       
@@ -242,7 +246,9 @@ module BlockIo
     end
 
     # Decrypts a block of data (encrypted_data) given an encryption key
-    def self.decrypt(encrypted_data, b64_enc_key, iv = nil, cipher_type = "AES-256-ECB")
+    def self.decrypt(encrypted_data, b64_enc_key, iv = nil, cipher_type = "AES-256-ECB", auth_tag = nil, auth_data = nil)
+
+      raise Exception.new("Auth tag must be 16 bytes exactly.") unless auth_tag.nil? or auth_tag.size == 32
       
       response = nil
 
@@ -251,6 +257,8 @@ module BlockIo
         aes.decrypt
         aes.key = b64_enc_key.unpack("m0")[0]
         aes.iv = [iv].pack("H*") unless iv.nil?
+        aes.auth_tag = [auth_tag].pack("H*") unless auth_tag.nil?
+        aes.auth_data = [auth_data].pack("H*") unless auth_data.nil?
         response = aes.update(encrypted_data.unpack("m0")[0]) << aes.final
       rescue Exception => e
         # decryption failed, must be an invalid Secret PIN
@@ -261,12 +269,17 @@ module BlockIo
     end
     
     # Encrypts a block of data given an encryption key
-    def self.encrypt(data, b64_enc_key, iv = nil, cipher_type = "AES-256-ECB")
+    def self.encrypt(data, b64_enc_key, iv = nil, cipher_type = "AES-256-ECB", auth_data = nil)
       aes = OpenSSL::Cipher.new(cipher_type)
       aes.encrypt
       aes.key = b64_enc_key.unpack("m0")[0]
       aes.iv = [iv].pack("H*") unless iv.nil?
-      [aes.update(data) << aes.final].pack("m0")
+      aes.auth_data = [auth_data].pack("H*") unless auth_data.nil?
+      result = [aes.update(data) << aes.final].pack("m0")
+      auth_tag = (cipher_type.end_with?("-GCM") ? aes.auth_tag.unpack("H*")[0] : nil)
+
+      {:aes_auth_tag => auth_tag, :aes_cipher_text => result, :aes_iv => iv, :aes_cipher => cipher_type, :aes_auth_data => auth_data}
+      
     end
 
     # courtesy bitcoin-ruby
