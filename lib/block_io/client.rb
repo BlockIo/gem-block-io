@@ -16,7 +16,7 @@ module BlockIo
       raise "Must provide an API Key." unless args.key?(:api_key) and args[:api_key].to_s.size > 0
       
       @api_key = args[:api_key]
-      @encryption_key = Helper.pinToAesKey(args[:pin] || "") if args.key?(:pin)
+      @pin = args[:pin]
       @version = args[:version] || 2
       @hostname = args[:hostname] || "block.io"
       @proxy = args[:proxy] || {}
@@ -131,9 +131,10 @@ module BlockIo
       if !encrypted_key.nil? and !@keys.key?(encrypted_key['public_key']) then
         # decrypt the key with PIN
 
-        raise Exception.new("PIN not set and no keys provided. Cannot sign transaction.") unless @encryption_key or @keys.size > 0
-        
-        key = Helper.extractKey(encrypted_key['encrypted_passphrase'], @encryption_key)
+        raise Exception.new("PIN not set and no keys provided. Cannot sign transaction.") unless !@pin.nil? or @keys.size > 0
+
+        key = Helper.dynamicExtractKey(encrypted_key, @pin)
+
         raise Exception.new("Public key mismatch for requested signer and ourselves. Invalid Secret PIN detected.") unless key.public_key_hex.eql?(encrypted_key["public_key"])
 
         # store this key for later use

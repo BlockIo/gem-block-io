@@ -2,6 +2,16 @@ module BlockIo
 
   class Helper
 
+    LEGACY_DECRYPTION_ALGORITHM = {
+      :pbkdf2_salt => "",
+      :pbkdf2_iterations => 2048,
+      :pbkdf2_hash_function => "SHA256",
+      :pbkdf2_phase1_key_length => 16,
+      :pbkdf2_phase2_key_length => 32,
+      :aes_iv => nil,
+      :aes_cipher => "AES-256-ECB"
+    }
+    
     def self.allSignaturesPresent?(tx, inputs, signatures, input_address_data)
       # returns true if transaction has all signatures present
       
@@ -152,6 +162,42 @@ module BlockIo
       sighash
       
     end
+
+    def self.getDecryptionAlgorithm(user_key_algorithm = nil)
+      # mainly used so existing unit tests do not break
+      
+      algorithm = ({}).merge(LEGACY_DECRYPTION_ALGORITHM)
+
+      if !user_key_algorithm.nil? then
+        algorithm[:pbkdf2_salt] = user_key_algorithm['pbkdf2_salt']
+        algorithm[:pbkdf2_iterations] = user_key_algorithm['pbkdf2_iterations']
+        algorithm[:pbkdf2_hash_function] = user_key_algorithm['pbkdf2_hash_function']
+        algorithm[:pbkdf2_phase1_key_length] = user_key_algorithm['pbkdf2_phase1_key_length']
+        algorithm[:pbkdf2_phase2_key_length] = user_key_algorithm['pbkdf2_phase2_key_length']
+        algorithm[:aes_iv] = user_key_algorithm['aes_iv']
+        algorithm[:aes_cipher] = user_key_algorithm['aes_cipher']
+      end
+
+      algorithm
+      
+    end
+    
+    def self.dynamicExtractKey(user_key, pin)
+      # user_key object contains the encrypted user key and decryption algorithm
+
+      algorithm = self.getDecryptionAlgorithm(user_key['algorithm'])
+
+      aes_key = self.pinToAesKey(pin, algorithm[:pbkdf2_iterations],
+                                 algorithm[:pbkdf2_salt],
+                                 algorithm[:pbkdf2_hash_function],
+                                 algorithm[:pbkdf2_phase1_key_length],
+                                 algorithm[:pbkdf2_phase2_key_length])
+
+      decrypted = self.decrypt(user_key['encrypted_passphrase'], aes_key, algorithm[:aes_iv], algorithm[:aes_cipher])
+      
+      Key.from_passphrase(decrypted)
+      
+    end
     
     def self.extractKey(encrypted_data, b64_enc_key)
       # passphrase is in plain text
@@ -169,24 +215,25 @@ module BlockIo
       OpenSSL::Digest::SHA256.digest(value).unpack("H*")[0]
     end
     
-    def self.pinToAesKey(secret_pin, iterations = 2048)
+    def self.pinToAesKey(secret_pin, iterations = 2048, salt = "", hash_function = "SHA256", pbkdf2_phase1_key_length = 16, pbkdf2_phase2_key_length = 32)
       # converts the pincode string to PBKDF2
       # returns a base64 version of PBKDF2 pincode
-      salt = ""
 
+      raise Exception.new("Unknown hash function specified. Are you using current version of this library?") unless hash_function == "SHA256"
+      
       part1 = OpenSSL::PKCS5.pbkdf2_hmac(
         secret_pin,
-        "",
-        1024,
-        128/8,
+        salt,
+        iterations/2,
+        pbkdf2_phase1_key_length,
         OpenSSL::Digest::SHA256.new
       ).unpack("H*")[0]
       
       part2 = OpenSSL::PKCS5.pbkdf2_hmac(
         part1,
-        "",
-        1024,
-        256/8,
+        salt,
+        iterations/2,
+        pbkdf2_phase2_key_length,
         OpenSSL::Digest::SHA256.new
       ) # binary
 
@@ -203,7 +250,7 @@ module BlockIo
         aes = OpenSSL::Cipher.new(cipher_type)
         aes.decrypt
         aes.key = b64_enc_key.unpack("m0")[0]
-        aes.iv = iv unless iv.nil?
+        aes.iv = [iv].pack("H*") unless iv.nil?
         response = aes.update(encrypted_data.unpack("m0")[0]) << aes.final
       rescue Exception => e
         # decryption failed, must be an invalid Secret PIN
@@ -218,7 +265,7 @@ module BlockIo
       aes = OpenSSL::Cipher.new(cipher_type)
       aes.encrypt
       aes.key = b64_enc_key.unpack("m0")[0]
-      aes.iv = iv unless iv.nil?
+      aes.iv = [iv].pack("H*") unless iv.nil?
       [aes.update(data) << aes.final].pack("m0")
     end
 

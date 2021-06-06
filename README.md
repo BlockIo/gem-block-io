@@ -14,7 +14,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install block_io -v=3.0.0
+    $ gem install block_io
 
 ## Changelog
 *04/14/21*: BREAKING CHANGES. Version 3.0.0. Remove support for Ruby < 2.4.0, and Windows. Behavior and interfaces have changed. By upgrading you'll need to revise your code and tests.
