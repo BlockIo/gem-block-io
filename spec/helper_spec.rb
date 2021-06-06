@@ -18,7 +18,7 @@ describe "Helper.pinToAesKey" do
   end
 end
 
-describe "Helper.encrypt" do
+describe "Helper.encrypt_aes256ecb" do
   before(:each) do
     @encryption_key = BlockIo::Helper.pinToAesKey("deadbeef")
     @encrypted_data = BlockIo::Helper.encrypt("beadbeef", @encryption_key)
@@ -30,7 +30,7 @@ describe "Helper.encrypt" do
 
 end
 
-describe "Helper.decrypt" do
+describe "Helper.decrypt_aes256ecb" do
   before(:each) do
     @encryption_key = BlockIo::Helper.pinToAesKey("deadbeef")
     @bad_encryption_key = BlockIo::Helper.pinToAesKey(SecureRandom.hex(8))
