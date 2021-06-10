@@ -17,6 +17,7 @@ Or install it yourself as:
     $ gem install block_io
 
 ## Changelog
+*06/09/21*: Version 3.0.1 implements use of dynamic decryption algorithms.
 *04/14/21*: BREAKING CHANGES. Version 3.0.0. Remove support for Ruby < 2.4.0, and Windows. Behavior and interfaces have changed. By upgrading you'll need to revise your code and tests.
 
 ## Important Notes
