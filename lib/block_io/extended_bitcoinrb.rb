@@ -46,12 +46,17 @@ module Bitcoin
         r = point_field.mod(r_point.x)
         return nil if r.zero?
 
+        rec = r_point.y & 1
+        
         e = ECDSA.normalize_digest(data, GROUP.bit_length)
         s = point_field.mod(point_field.inverse(nonce) * (e + r * private_key))
 
         # covert to low-s
-        s = GROUP.order - s if s > (GROUP.order / 2)
-
+        if s > (GROUP.order / 2)
+          s = GROUP.order - s
+          rec = r_point.y & 1
+        end
+        
         return nil if s.zero?
 
         signature = ECDSA::Signature.new(r, s).to_der
@@ -60,7 +65,7 @@ module Bitcoin
         #        public_key = Bitcoin::Key.new(priv_key: privkey.bth, :key_type => Bitcoin::Key::TYPES[:compressed]).pubkey # get rid of the key_type warning
         #        raise 'Creation of signature failed.' unless Bitcoin::Secp256k1::Ruby.verify_sig(data, signature, public_key)
         
-        signature
+        [signature, rec]
       end
       
     end
