@@ -347,5 +347,25 @@ describe "Client.create_and_sign_transaction" do
     
   end
   
-end
+  context "witness_v1_output" do
+
+    before(:each) do
+
+      @blockio = BlockIo::Client.new(:api_key => @api_key, :pin => @insecure_pin_valid)
+      
+    end
+
+    it "succeeds_on_witness_v1_output" do
+    
+      request = Oj.safe_load(File.open("spec/test-cases/json/prepare_transaction_response_witness_v1_output.json").read)
+      expected_response = Oj.safe_load(File.open("spec/test-cases/json/create_and_sign_transaction_response_witness_v1_output.json").read)
+      
+      actual_response = @blockio.create_and_sign_transaction(request)
+      
+      expect(actual_response).to eq(expected_response)
+      
+    end
+
+  end
   
+end
