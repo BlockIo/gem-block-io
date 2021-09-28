@@ -17,7 +17,7 @@ Or install it yourself as:
     $ gem install block_io
 
 ## Changelog
-*TBD*: Update bitcoinrb to 0.8.0 to allow Bech32m outputs.  
+*09/28/21*: Version 3.0.3 supports witness_v1 outputs (Bech32m).  
 *07/21/21*: Version 3.0.2 fixes Litecoin P2SH address version.  
 *06/09/21*: Version 3.0.1 implements use of dynamic decryption algorithms.  
 *04/14/21*: BREAKING CHANGES. Version 3.0.0. Remove support for Ruby < 2.4.0, and Windows. Behavior and interfaces have changed. By upgrading you'll need to revise your code and tests.
