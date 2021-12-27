@@ -15,14 +15,14 @@ Gem::Specification.new do |spec|
   spec.files         = `git ls-files -z`.split("\x0")
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
-  spec.required_ruby_version = '>= 2.4.0'
+  spec.required_ruby_version = '>= 2.6.0'
   spec.require_paths = ["lib"]
 
   spec.add_development_dependency "bundler", ">= 1.16", "< 3.0"
   spec.add_development_dependency "rake", "~> 13.0", ">= 13.0"
   spec.add_development_dependency "rspec", "~> 3.6", ">= 3.6"
   spec.add_development_dependency "webmock", "~> 3.12", "< 4.0"
-  spec.add_runtime_dependency "bitcoinrb", "~> 0.8.0", "= 0.8.0"
+  spec.add_runtime_dependency "bitcoinrb", "~> 1.0", "= 1.0.0"
   spec.add_runtime_dependency "http", ">= 4.4.1", "< 6.0"
   spec.add_runtime_dependency "oj", "~> 3.0", "< 4.0"
   spec.add_runtime_dependency "connection_pool", ">= 2.2", "< 3.0"

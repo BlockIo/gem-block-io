@@ -21,7 +21,7 @@ module Bitcoin
     end
 
     def self.init(name)
-      i = YAML.load(File.open("#{__dir__}/chainparams/#{name}.yml"))
+      i = YAML.safe_load(File.open("#{__dir__}/chainparams/#{name}.yml"), :permitted_classes => [Bitcoin::ChainParams])
       i.dust_relay_fee ||= Bitcoin::DUST_RELAY_TX_FEE
       i
     end

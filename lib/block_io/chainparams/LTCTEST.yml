@@ -2,7 +2,7 @@
 network: "LTCTEST"
 address_version: "6f"
 p2sh_version: "3a"
-bech32_hrp: 'tltc'
+bech32_hrp: "tltc"
 privkey_version: "ef"
 extended_privkey_version: "0436f6e1"
 extended_pubkey_version: "0436ef7d"
