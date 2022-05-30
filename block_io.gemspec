@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 13.0", ">= 13.0"
   spec.add_development_dependency "rspec", "~> 3.6", ">= 3.6"
   spec.add_development_dependency "webmock", "~> 3.12", "< 4.0"
-  spec.add_runtime_dependency "bitcoinrb", "~> 1.0", "= 1.0.0"
+  spec.add_runtime_dependency "bitcoinrb", "~> 1.0", "< 1.2.0"
   spec.add_runtime_dependency "http", ">= 4.4.1", "< 6.0"
   spec.add_runtime_dependency "oj", "~> 3.0", "< 4.0"
   spec.add_runtime_dependency "connection_pool", ">= 2.2", "< 3.0"
