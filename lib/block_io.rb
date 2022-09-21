@@ -1,9 +1,8 @@
-require "http"
 require "oj"
 require "bitcoin"
 require "openssl"
 require "securerandom"
-require "connection_pool"
+require "typhoeus"
 
 require_relative "block_io/version"
 require_relative "block_io/helper"

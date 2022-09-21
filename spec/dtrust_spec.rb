@@ -8,14 +8,6 @@ describe "Client.prepare_dtrust_transaction" do
                      "6c1cefdfd9187b36b36c3698c1362642083dcc1941dc76d751481d3aa29ca65"]
     @to_address = "QcnYiN3t3foHxHv7CnqXrmRoiMkADhapZw"
     @amount = "0.00020000"
-    @headers = {
-      'Accept' => 'application/json',
-      'Connection' => 'Keep-Alive',
-      'Content-Type' => 'application/json; charset=UTF-8',
-      'Host' => 'block.io',
-      'User-Agent' => "gem:block_io:#{BlockIo::VERSION}"
-    }
-
   end
 
   context "p2sh" do
@@ -29,7 +21,7 @@ describe "Client.prepare_dtrust_transaction" do
       @stub1 = stub_request(:post, "https://block.io/api/v2/prepare_dtrust_transaction").
                  with(
                    body: @req_params.merge({:api_key => @api_key}).to_json,
-                   headers: @headers).
+                   headers: SPEC_REQUEST_HEADERS).
                  to_return(status: 200, body: @prepare_dtrust_transaction_response_p2sh, headers: {})
       
       @create_and_sign_transaction_response_dtrust_p2sh_3_of_5_keys = File.new("spec/test-cases/json/create_and_sign_transaction_response_dtrust_p2sh_3_of_5_keys.json").read
@@ -76,7 +68,7 @@ describe "Client.prepare_dtrust_transaction" do
       @stub1 = stub_request(:post, "https://block.io/api/v2/prepare_dtrust_transaction").
                  with(
                    body: @req_params.merge({:api_key => @api_key}).to_json,
-                   headers: @headers).
+                   headers: SPEC_REQUEST_HEADERS).
                  to_return(status: 200, body: @prepare_dtrust_transaction_response_p2wsh_over_p2sh, headers: {})
       
       @create_and_sign_transaction_response_dtrust_p2wsh_over_p2sh_3_of_5_keys = File.new("spec/test-cases/json/create_and_sign_transaction_response_dtrust_p2wsh_over_p2sh_3_of_5_keys.json").read
@@ -125,7 +117,7 @@ describe "Client.prepare_dtrust_transaction" do
       @stub1 = stub_request(:post, "https://block.io/api/v2/prepare_dtrust_transaction").
                  with(
                    body: @req_params.merge({:api_key => @api_key}).to_json,
-                   headers: @headers).
+                   headers: SPEC_REQUEST_HEADERS).
                  to_return(status: 200, body: @prepare_dtrust_transaction_response_witness_v0, headers: {})
       
       @create_and_sign_transaction_response_dtrust_witness_v0_3_of_5_keys = File.new("spec/test-cases/json/create_and_sign_transaction_response_dtrust_witness_v0_3_of_5_keys.json").read

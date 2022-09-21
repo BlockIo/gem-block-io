@@ -5,19 +5,12 @@ describe "Client" do
   before(:each) do
     @api_key = "0000-0000-0000-0000"
     @req_params = {:to_address => "QTLcyTFrH7T6kqUsi1VV2mJVXmX3AmwUNH", :amounts => "0.248"}
-    @headers = {
-      'Accept' => 'application/json',
-      'Connection' => 'Keep-Alive',
-      'Content-Type' => 'application/json; charset=UTF-8',
-      'Host' => 'block.io',
-      'User-Agent' => "gem:block_io:#{BlockIo::VERSION}"
-    }
     
     @prepare_transaction_response = File.new("spec/test-cases/json/prepare_transaction_response_with_blockio_fee_and_expected_unsigned_txid.json").read
     @stub1 = stub_request(:post, "https://block.io/api/v2/prepare_transaction").
                with(
                  body: @req_params.merge({:api_key => @api_key}).to_json,
-                 headers: @headers).
+                 headers: SPEC_REQUEST_HEADERS).
                to_return(status: 200, body: @prepare_transaction_response, headers: {})
 
     @create_and_sign_transaction_response = File.new("spec/test-cases/json/create_and_sign_transaction_response_with_blockio_fee_and_expected_unsigned_txid.json").read
