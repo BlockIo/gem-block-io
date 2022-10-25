@@ -61,7 +61,7 @@ module Bitcoin
 
         signature = ECDSA::Signature.new(r, s).to_der
 
-        # comment lines below lead to performance issues
+        # these lines lead to performance issues
         #        public_key = Bitcoin::Key.new(priv_key: privkey.bth, :key_type => Bitcoin::Key::TYPES[:compressed]).pubkey # get rid of the key_type warning
         #        raise 'Creation of signature failed.' unless Bitcoin::Secp256k1::Ruby.verify_sig(data, signature, public_key)
         
@@ -77,7 +77,7 @@ module Bitcoin
       # override so enforce compressed keys
       
       raise "key_type must always be Bitcoin::KEY::TYPES[:compressed]" unless key_type == TYPES[:compressed]
-      puts "[Warning] Use key_type parameter instead of compressed. compressed parameter removed in the future." if key_type.nil? && !compressed.nil? && pubkey.nil?
+      puts '[Warning] Use key_type parameter instead of compressed. compressed parameter removed in the future.' if key_type.nil? && !compressed.nil? && pubkey.nil?
       if key_type
         @key_type = key_type
         compressed = @key_type != TYPES[:uncompressed]
