@@ -17,7 +17,7 @@ Or install it yourself as:
     $ gem install block_io
 
 ## Changelog
-*09/20/22*: Version 3.1.0 uses Typhoeus instead of httprb. If using proxy, :url must be provided instead of previous :hostname and :port.  
+*10/28/22*: Version 3.1.0 uses Typhoeus instead of httprb. If using proxy, :url must be provided instead of previous :hostname and :port.  
 *05/30/22*: Version 3.0.5 fixes Litecoin P2SH address version (properly now).  
 *12/26/21*: Version 3.0.4 drops support for EOL Ruby 2.4, 2.5. Supports Ruby 3.1.  
 *09/28/21*: Version 3.0.3 supports witness_v1 outputs (Bech32m).  
